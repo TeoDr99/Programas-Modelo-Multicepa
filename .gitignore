@@ -1,0 +1,5 @@
+TAREA.md
+HALLAZGOS.md
+__pycache__/
+.pytest_cache/
+.venv/
