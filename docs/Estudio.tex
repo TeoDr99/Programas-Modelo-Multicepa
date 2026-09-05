@@ -36,11 +36,15 @@ marginparwidth=2cm, marginparsep=0.4cm, margin=2.5cm]{geometry}
 \maketitle
 
 \section{Modelo Matemático}
-El modelo presentado es una generalización del modelo planteado por Robert G.S. de Araújo en el paper ''Applying a multi-strain dengue model to epidemics data'' para un número $n$ de compartimentos o parches con el objetivo de examinar el efecto del movimiento del hospedador en la dinámica de transmisión del dengue. Consideramos que hay cuatro serotipos circulantes y modelamos las infecciones primarias y secundarias por dengue. Para este fin, la población humana se divide en susceptible a los cuatro serotipos $\bar{S}_{l}$; infectados primariamente por uno de los cuatro serotipos $\left(\bar{I}_{li}\right), i=1, \ldots, 4$ perteneciente al compartimento $l$, $l=1,2,\dots,n$; recuperados de la primera infección con el serotipo $i$ $\left(\bar{Z}_{li}\right)$ pero susceptibles al serotipo $k=1, \ldots, 4$ con $k \neq i$; infectados inicialmente por el serotipo $k=1, \ldots, 4$ con $k \neq i$ e infectados secundariamente por el serotipo $i\left(\bar{Y}_{lik}\right)$; y recuperados de ambas infecciones \highlight[comment={No sería independiente de $i$}]{$(\bar{Z}_{li})$}. La población de mosquitos se divide en susceptibles, $\bar{V}_{s}$, e infectados por el serotipo $\bar{V}_{mi}, i=1 \ldots, 4$ y proveniente del parche $m=1,2,\dots$. (Suponemos que, debido a su corta vida, los mosquitos solo pueden infectarse con dengue una vez). Para contabilizar el total de humanos infectados por el serotipo $i$, es necesario sumar $\sum_{l=1}\left(I_{li}+\sum_{k=1}^4 Y_{lik}\right)$ con $k \neq i$.
+El modelo presentado es una generalización del modelo planteado por de Araújo et al.\ (2023) en \emph{Applying a multi-strain dengue model to epidemics data} para un número $n$ de parches (o nodos) espaciales, con el objetivo de examinar el efecto del movimiento del hospedador en la dinámica de transmisión del dengue. Consideramos $c$ serotipos circulantes; siguiendo el trabajo original fijamos $c=4$ en la exposición, aunque la implementación numérica que acompaña a este documento (sección~\ref{sec:codigo}) admite $c$ arbitrario y usa $c=2$ por defecto. Modelamos las infecciones primarias y secundarias por dengue. Para este fin, la población humana del parche $l$, $l=1,\dots,n$, se divide en: susceptibles a los cuatro serotipos, $\bar S_l$; infectados primariamente por el serotipo $i$, $\bar I_{li}$, $i=1,\dots,4$; recuperados de la infección primaria por el serotipo $i$ pero susceptibles a los serotipos $j\neq i$, $\bar Z_{li}$; infectados primariamente por el serotipo $i$ y secundariamente por el serotipo $j\neq i$, $\bar Y_{lij}$\footnote{Convención de índices de $Y$: el \textbf{primer} índice de serotipo es la infección \textbf{primaria} y el \textbf{segundo} la \textbf{secundaria}. Es la convención de la implementación numérica. El trabajo de de Araújo et al.\ usa la opuesta ($Y_{ki}$ = primaria por $k$, secundaria por $i$, sumando sobre el primer índice); un lector que compare ambos textos debe tenerlo presente.}; y recuperados de ambas infecciones, $\bar Z_l$, que no depende del serotipo porque un individuo con dos infecciones es inmune a todos los serotipos considerados. La población de mosquitos del parche $l$ se divide en susceptibles, $\bar V_{sl}$, e infectados por el serotipo $i$, $\bar V_{li}$, $i=1,\dots,4$ (suponemos que, debido a su corta vida, los mosquitos solo pueden infectarse con dengue una vez). El total de humanos del parche $l$ capaces de transmitir el serotipo $i$ es $\bar I_{li}+\sum_{k\neq i}\bar Y_{lki}$: los infectados primarios por $i$ más los infectados secundarios por $i$, cualquiera sea su serotipo primario $k$.
 
-Un individuo susceptible $S$ se infecta con el serotipo $i$ al ser picado por un mosquito infectado a una tasa $\lambda_{lim} \bar{V}_{mi} S_l$ con $i=1, \ldots, 4$. Los individuos que han sido infectados con el serotipo $i$ pueden tener una segunda infección de dengue con un serotipo diferente $k$ a una tasa \highlight[comment={Sera $j=k$?}]{$\sigma_{ij} \lambda_{lim}$}, con $i, k=1, \ldots, 4, i \neq k$. Un individuo infectado por un serotipo se vuelve permanentemente inmune a este serotipo, pero susceptible a los demás, lo que lleva a casos secundarios. Supongamos que la infección primaria se debe al serotipo $i$. Si \highlight[comment={$\sigma_{ij}$?}]{$\sigma_{ij}=1$}, la infección por el serotipo $i$ no altera la susceptibilidad a la infección por el serotipo $k$. Si $0 \leq \sigma_{ij}<1$, el serotipo $i$ confiere inmunidad parcial o total al serotipo $k$. Si $\sigma_{li kj}>1$, la infección por el serotipo $i$ aumenta la susceptibilidad al serotipo $k$. Por lo tanto, en nuestro modelo, $\sigma_{likj}$ puede asumir valores menores o mayores que uno, ya que representa el resultado neto del efecto cruzado sobre la intensidad de la tasa de infección.
+Un individuo susceptible del parche $l$ se infecta con el serotipo $i$ al ser picado por un mosquito infectado del parche $m$ a una tasa $\lambda_{lim}\bar V_{mi}$, con $i=1,\dots,4$ y $l,m=1,\dots,n$. Los individuos que han sido infectados con el serotipo $i$ pueden tener una segunda infección con un serotipo diferente $j$ a una tasa $\sigma_{ij}\lambda_{ljm}\bar V_{mj}$, con $i,j=1,\dots,4$, $i\neq j$. El factor $\sigma_{ij}$ es el efecto cruzado de la infección primaria por $i$ sobre la susceptibilidad al serotipo $j$; depende solo del par de serotipos y no del parche. Un individuo infectado por un serotipo se vuelve permanentemente inmune a este serotipo, pero susceptible a los demás, lo que lleva a casos secundarios. Si $\sigma_{ij}=1$, la infección por el serotipo $i$ no altera la susceptibilidad a la infección por el serotipo $j$. Si $0\leq\sigma_{ij}<1$, el serotipo $i$ confiere inmunidad parcial o total al serotipo $j$. Si $\sigma_{ij}>1$, la infección por el serotipo $i$ aumenta la susceptibilidad al serotipo $j$ (\emph{antibody-dependent enhancement}, ADE). Por lo tanto, en nuestro modelo $\sigma_{ij}$ puede asumir valores menores o mayores que uno, ya que representa el resultado neto del efecto cruzado sobre la intensidad de la tasa de infección. Adoptamos además la convención
+\begin{equation}\label{eq:sigma-diag}
+\sigma_{ii}=0,\qquad i=1,\dots,4,
+\end{equation}
+que expresa que no hay reinfección por el mismo serotipo; con ella, las sumas sobre el segundo índice de $\sigma$ pueden escribirse sobre todos los serotipos sin la restricción $j\neq i$, y $Y_{lii}\equiv 0$. (Es exactamente lo que hace la implementación al multiplicar $\sigma$ por una máscara con ceros en la diagonal.)
 
-Debido a la corta vida de los mosquitos, no pueden reinfectarse con otro serotipo. Además, aunque los humanos pueden contraer dengue hemorrágico (la forma más grave de la enfermedad), la mortalidad por esta enfermedad es baja, por lo que podemos ignorarla. Asimismo, asumimos las mismas tasas de mortalidad y recuperación humanas para todos los serotipos, ya que no encontramos evidencia que sugiera alguna diferencia. Según estos supuestos, podemos suponer que las poblaciones humanas y de mosquitos, denotadas por $N_h$ y $N_m$, respectivamente, son constantes, con tasas de mortalidad natural dadas por $\mu$ y $v$, respectivamente. Para simplificar el modelo, tomamos proporciones en ambas poblaciones, que vienen dadas por:
+Debido a la corta vida de los mosquitos, no pueden reinfectarse con otro serotipo. Además, aunque los humanos pueden contraer dengue hemorrágico (la forma más grave de la enfermedad), la mortalidad por esta enfermedad es baja, por lo que podemos ignorarla. Asimismo, asumimos las mismas tasas de mortalidad y recuperación humanas para todos los serotipos, ya que no encontramos evidencia que sugiera alguna diferencia. Según estos supuestos, podemos suponer que las poblaciones humanas y de mosquitos, denotadas por $N_h$ y $N_m$, respectivamente, son constantes, con tasas de mortalidad natural dadas por $\mu$ y $\nu$, respectivamente. Para simplificar el modelo, tomamos proporciones en ambas poblaciones, que vienen dadas por:
 \comment{No entiendo estas igualdades. Sobra una sumatoria en los primeros miembros?}
 
 $$
@@ -56,37 +60,38 @@ $$
 \sum_{l=1}V_1 = \frac{\sum_{l=1}\bar{V}_{l1}}{\sum_{l=1}N_{vl}}, \quad \sum_{l=1}V_{l2} = \frac{\sum_{l=1}\bar{V}_{l2}}{\sum_{l=1}N_{vl}}, \quad \sum_{l=1}V_{l3}=\frac{\sum_{l=1}\bar{V}_3}{\sum_{ l=1}N_{vl}}, \quad \sum_{l=1}V_{l4}=\frac{\sum_{l=1}\bar{V}_{4l}}{\sum_{l=1}N_{vl}} \quad \sum_{l=1}V_{sl}=1-\sum_{l=1}\sum_{i=1}^4 V_{li}
 $$
 
-De acuerdo con las suposiciones anteriores, obtenemos el siguiente sistema de ecuaciones diferenciales ordinarias con 25 ecuaciones por cada nodo:
+De acuerdo con las suposiciones anteriores, obtenemos el siguiente sistema de ecuaciones diferenciales ordinarias con 25 ecuaciones por cada nodo ($1+4+4+12+4$; las $Y_{lii}$ son idénticamente nulas), donde $\gamma$ es la tasa de recuperación humana, común a todos los serotipos y parches, $\mu$ la tasa de natalidad y mortalidad humana y $\nu$ la mortalidad del mosquito:
 
-\begin{align*}
-    \frac{d S_l}{d t} & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \quad\quad l=1,\dots, n\\
-    \frac{d I_{li}}{d t} & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma_{li}+\mu\right) I_{li}, \quad\quad l=1,\dots, n\quad\quad i=1,\dots,4\\
-    \frac{d Z_{li}}{d t} & =\gamma_{li} I_{li}-Z_{li}\sum_{k=1}^4\sigma_{ik}\sum_{m=1}^n  \lambda_{lkm}V_{mk}-\mu Z_{li}, \quad\quad l=1,\dots, n \quad\quad i=1,\dots,4 \\
-    \frac{d Y_{lij}}{d t} & =Z_{li}\sigma_{ij}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma_{lj}\right) Y_{lij}, \quad\quad l=1,\dots, n\quad\quad i,j=1,\dots,4\\
-    \frac{d V_{li}}{d t} & =\left(1-\sum_{v=1}^4 V_{lv}\right)\left[\sum_{m=1}^n\delta_{lim}\left(I_{mi}+\sum_{k=1}^4 Y_{mki}\right)\right]-v V_{li}\quad\quad l=1,\dots, n\quad\quad i=1,\dots,4
-\end{align*}
-
-\begin{align*}
-    \frac{\mathbf{}}{}
-\end{align*}
+\begin{equation}\label{eq:sistema}
+\begin{aligned}
+    \frac{d S_l}{d t} & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
+    \frac{d I_{li}}{d t} & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma+\mu\right) I_{li}, \\
+    \frac{d Z_{li}}{d t} & =\gamma I_{li}-Z_{li}\sum_{j=1}^4\sigma_{ij}\sum_{m=1}^n  \lambda_{ljm}V_{mj}-\mu Z_{li}, \\
+    \frac{d Y_{lij}}{d t} & =\sigma_{ij}Z_{li}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma\right) Y_{lij}, \\
+    \frac{d V_{li}}{d t} & =\left(1-\sum_{k=1}^4 V_{lk}\right)\sum_{m=1}^n\delta_{lim}\left(I_{mi}+\sum_{k\neq i} Y_{mki}\right)-\nu V_{li},
+\end{aligned}
+\end{equation}
+para $l=1,\dots,n$ e $i,j=1,\dots,4$. En la ecuación de $Z_{li}$ la suma sobre $j$ recorre en efecto solo los $j\neq i$ por \eqref{eq:sigma-diag}; en la de $V_{li}$, $\sum_{k\neq i}Y_{mki}$ son los humanos del parche $m$ con infección secundaria por $i$, cualquiera sea su serotipo primario $k$. Las matrices de acoplamiento son $\lambda_{lim}$ (fuerza de infección sobre los humanos del parche $l$ ejercida por los mosquitos del parche $m$, serotipo $i$) y $\delta_{lim}$ (infección de los mosquitos del parche $l$ por los humanos del parche $m$, serotipo $i$); su forma concreta para una grilla se da en la sección~\ref{sec:experimentos}.
 
 \section{Equilibrio Endémico}
 Queremos saber bajo que condiciones existe solución al sistema 
 \begin{align*}
-    0 & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \quad\quad l=1,\dots, n\\
-    0 & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma_{li}+\mu\right) I_{li}, \quad\quad l=1,\dots, n\quad\quad i=1,\dots,4\\
-    0 & =\gamma_{li} I_{li}-Z_{li}\sum_{k=1}^4\sigma_{ik}\sum_{m=1}^n  \lambda_{lkm}V_{mk}-\mu Z_{li}, \quad\quad l=1,\dots, n \quad\quad i=1,\dots,4 \\
-    0 & =Z_{li}\sigma_{ij}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma_{lj}\right) Y_{lij}, \quad\quad l=1,\dots, n\quad\quad i,j=1,\dots,4\\
-    0 & =\left(1-\sum_{j=1}^4 V_{lj}\right)\left[\sum_{m=1}^n\delta_{lim}\left(I_{mi}+\sum_{k=1}^4 Y_{mki}\right)\right]-v V_{li}\quad\quad l=1,\dots, n\quad\quad i,k=1,\dots,4\text{ con }k\neq i
+    0 & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
+    0 & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma+\mu\right) I_{li}, \\
+    0 & =\gamma I_{li}-Z_{li}\sum_{j=1}^4\sigma_{ij}\sum_{m=1}^n  \lambda_{ljm}V_{mj}-\mu Z_{li}, \\
+    0 & =\sigma_{ij}Z_{li}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma\right) Y_{lij}, \\
+    0 & =\left(1-\sum_{k=1}^4 V_{lk}\right)\sum_{m=1}^n\delta_{lim}\left(I_{mi}+\sum_{k\neq i} Y_{mki}\right)-\nu V_{li},
 \end{align*}
-Para simplificar el problema, consideremos primero el caso en el que hay solo nodo. 
+con $l=1,\dots,n$ e $i,j=1,\dots,4$, es decir, el sistema \eqref{eq:sistema} con los miembros izquierdos anulados.
+Para simplificar el problema, consideremos primero el caso en el que hay un solo nodo ($n=1$; se omite el índice de parche):
 \begin{align*}
-    0 & =\mu N-S\sum_{i=1}^4 \lambda_{i} V_{i} -\mu S, \quad\quad \\
-    0 & =S\lambda_{i} V_{i} -\left(\gamma_{i}+\mu\right) I_{i}, \quad\quad  i=1,\dots,4\\
-    0 & =\gamma_{i} I_{i}-Z_{i}\sum_{k=1}^4\sigma_{ik}  \lambda_{k}V_{k}-\mu Z_{i}, \quad\quad  i=1,\dots,4\text{ con } \\
-    0 & =Z_{i}\sigma_{ij}\lambda_{j}V_{j}-\left(\mu+\gamma_{j}\right) Y_{ij}, \quad\quad  i,j=1,\dots,4\\
-    0 & =\left(1-\sum_{v=1}^4 V_{v}\right)\left[\delta_{i}\left(I_{i}+\sum_{k=1}^4 Y_{ki}\right)\right]-v V_{i}\quad\quad  i=1,\dots,4
+    0 & =\mu N-S\sum_{i=1}^4 \lambda_{i} V_{i} -\mu S, \\
+    0 & =S\lambda_{i} V_{i} -\left(\gamma+\mu\right) I_{i}, \\
+    0 & =\gamma I_{i}-Z_{i}\sum_{j=1}^4\sigma_{ij}  \lambda_{j}V_{j}-\mu Z_{i}, \\
+    0 & =\sigma_{ij}Z_{i}\lambda_{j}V_{j}-\left(\mu+\gamma\right) Y_{ij}, \\
+    0 & =\left(1-\sum_{k=1}^4 V_{k}\right)\delta_{i}\left(I_{i}+\sum_{k\neq i} Y_{ki}\right)-\nu V_{i},
 \end{align*}
+con $i,j=1,\dots,4$.
 
 \paragraph{Versión preliminar}
 Específicamente, debemos buscar condiciones que aseguran la ocurrencia de un equilibrio endémico, es decir, un equilibrio diferente del equilibrio libre de enfermedad. 
