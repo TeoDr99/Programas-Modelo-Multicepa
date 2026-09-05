@@ -107,7 +107,11 @@ def main() -> None:
         rhs = Modelo
     sigma = sigma_default(c, args.sigma)
 
-    S0, I0, Z0, Y0, V0 = condiciones_iniciales(args.escenario, grid_rows, grid_cols, c, N_pop)
+    try:
+        S0, I0, Z0, Y0, V0 = condiciones_iniciales(args.escenario, grid_rows, grid_cols, c,
+                                                   N_pop)
+    except ValueError as e:  # p. ej. escenarios 4/5 con --cepas 1
+        sys.exit(f"run.py: error: {e}")
     x0 = Mapeo(S0, I0, Z0, Y0, V0)
 
     print("Integrando (esto puede demorar)...")
