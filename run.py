@@ -66,6 +66,9 @@ def construir_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sparse", action="store_true",
                         help="usar el acoplamiento disperso (más rápido para --nodos grande; "
                              "ver la sección de rendimiento del README). Apagado por defecto")
+    parser.add_argument("--salida", type=str, default=None,
+                        help="ruta donde guardar la animación (ej. anim.gif), además de "
+                             "mostrarla; si no se indica, solo se muestra")
     return parser
 
 
@@ -145,6 +148,10 @@ def main() -> None:
         return im, title
 
     anim = FuncAnimation(fig, update, frames=len(t_eval), interval=50, blit=False)
+
+    if args.salida:
+        print(f"Guardando animación en {args.salida}...")
+        anim.save(args.salida, writer="pillow")
 
     plt.show()
 
