@@ -11,12 +11,12 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-from dengue.model import (
-    Dimensiones, Mapeo, Modelo, build_network, condiciones_iniciales,
-    geometria_grilla, sigma_default,
-    MU_DEFAULT, GAMMA_DEFAULT, NU_DEFAULT, BETA_H_DEFAULT, BETA_V_DEFAULT,
-    COUPLING_DEFAULT,
+from dengue.model import Dimensiones, Mapeo, Modelo, MU_DEFAULT, GAMMA_DEFAULT, NU_DEFAULT
+from dengue.network import (
+    build_network, geometria_grilla, sigma_default,
+    BETA_H_DEFAULT, BETA_V_DEFAULT, COUPLING_DEFAULT,
 )
+from dengue.scenarios import condiciones_iniciales
 
 
 def main() -> None:
