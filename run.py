@@ -112,13 +112,14 @@ def main() -> None:
     # ========================================================================
     print("Generando animación...")
 
-    # Recuperar Infectados Primarios (I) + Secundarios (Y)
+    # Recuperar Infectados Primarios (I) + Secundarios (Y) usando los mismos
+    # cortes que MapeoInv (hallazgo 10: los nombres idx_S/idx_Z de la versión
+    # anterior eran engañosos — daban bien por cancelación de offsets, pero
+    # apuntaban al inicio de I y de Y, no de S ni de Z).
     # I shape: (n, c, t), Y shape: (n, c, c, t)
-    idx_S, idx_I = n, n + n*c
-    idx_Z, idx_Y = idx_I + n*c, idx_I + n*c + n*c*c
-
-    I_res = sol.y[idx_S:idx_I].reshape((n, c, len(t_eval)), order='F')
-    Y_res = sol.y[idx_Z:idx_Y].reshape((n, c, c, len(t_eval)), order='F')
+    cuts = dims.cuts
+    I_res = sol.y[cuts[0]:cuts[1]].reshape((n, c, len(t_eval)), order='F')
+    Y_res = sol.y[cuts[2]:cuts[3]].reshape((n, c, c, len(t_eval)), order='F')
 
     # Sumar todas las cepas y tipos de infección para obtener "Carga Viral Total"
     # Total = Sum(I) + Sum(Y) a lo largo de cepas

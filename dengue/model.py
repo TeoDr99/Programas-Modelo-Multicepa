@@ -24,6 +24,8 @@ Convención de índices (normativa, ver ``CLAUDE.md`` sección 2):
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 
 from .network import (
@@ -90,6 +92,21 @@ def MapeoInv(x: np.ndarray, dims: Dimensiones) -> tuple[np.ndarray, ...]:
             v.reshape((n, c), order='F'))
 
 
+@lru_cache(maxsize=None)
+def _mask(c: int) -> np.ndarray:
+    """``1 - I`` de tamaño ``(c, c)``: anula la reinfección por la misma cepa.
+
+    Memoizado por ``c`` (hallazgo 6): antes se reconstruía en cada evaluación
+    del lado derecho, miles de veces por integración. Valores bit-idénticos a
+    ``np.ones((c, c)) - np.eye(c)``; solo cambia que ya no se reasigna la
+    memoria en cada llamada. El producto ``sigma * mask`` no se cachea:
+    ``sigma`` es un array externo (distinto en cada test parametrizado), y
+    cachearlo por identidad sería frágil; ese producto es ``O(c²)`` y ya se
+    documentó como despreciable frente a los einsum de ``O(n²·c)``.
+    """
+    return np.ones((c, c)) - np.eye(c)
+
+
 # ============================================================================
 # 3. MODELO DINÁMICO
 # ============================================================================
@@ -105,7 +122,7 @@ def Modelo(t: float, x: np.ndarray, lam: np.ndarray, mu: float, gamma: float,
     c = dims.c
     S, I, Z, Y, V = MapeoInv(x, dims)
     TasaCont = np.einsum('lim,mi->li', lam, V)
-    mask = np.ones((c, c)) - np.eye(c)
+    mask = _mask(c)
     TasaCont2 = np.einsum('li,lj,ij->lij', Z, TasaCont, sigma * mask)
     Incidencia = np.einsum('l,li->li', S, TasaCont)
 
