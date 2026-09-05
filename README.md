@@ -57,12 +57,30 @@ python run.py --nodos 100 --cepas 2 --escenario 3
 
 Ese comando corre en menos de 2 segundos (medido) y abre una ventana con la
 animación. Ver todas las opciones con `python run.py --help`, en particular
-`--escenario` (incluye `0`, estado libre de enfermedad), `--salida` para guardar
-un GIF, y `--sparse` para la ruta de acoplamiento disperso (sección 6).
+`--escenario` (incluye `0`, estado libre de enfermedad), `--sigma` para el efecto
+cruzado entre serotipos, `--salida` para guardar un GIF, y `--sparse` para la ruta
+de acoplamiento disperso (sección 6).
+
+Escenarios disponibles (`--escenario`):
+
+| # | Nombre | Qué pregunta responde |
+|---|---|---|
+| 0 | Estado limpio | Punto de partida sin siembra, para sembrar a mano. |
+| 1 | Choque de ondas | Dos serotipos en esquinas opuestas: ¿se preserva la simetría? (T9) |
+| 2 | Cortafuegos | Pared de recuperados del serotipo 1, solo ese serotipo sembrado. La pared retrasa unos días pero no aísla: el frente cruza por los mosquitos de la pared. |
+| 3 | Siembra estocástica | Focos aleatorios con semilla fija (default; caso del golden T10). |
+| 4 | Reservorio | Misma pared que el 2 con **ambos** serotipos sembrados: la pared amplifica al serotipo 2 (sección 7). Requiere `--cepas >= 2`. |
+| 5 | Control del reservorio | Idéntico al 4 sin la pared. Requiere `--cepas >= 2`. |
+
+El resultado central del documento (escenarios 4 vs 5) se reproduce con un comando:
+
+```bash
+python scripts/reproducir_reservorio.py
+```
 
 ## 5. Verificación
 
-El repositorio tiene una suite de 39 tests (`pytest`, corre en unos 5 segundos) que
+El repositorio tiene una suite de 48 tests (`pytest`, corre en unos 6 segundos) que
 funciona como red de seguridad: si alguien rompe un índice, un signo, o un eje de un
 `einsum`, algún test tiene que fallar. Se verificó esto con un **testeo por
 mutación**: se introdujeron 10 errores deliberados en el modelo (un índice
@@ -91,7 +109,11 @@ exactamente la misma matriz. La convención de índices que sí importa (la del
 con una red *deliberadamente* dirigida, construida a mano.
 
 La Sesión B de refactor agregó dos tests más (no parte del contrato original, ver
-sección 6) que comparan la ruta de acoplamiento disperso contra la densa a `1e-10`.
+sección 6) que comparan la ruta de acoplamiento disperso contra la densa a `1e-10`, y
+la Sesión D otros nueve (`tests/test_reservorio.py`): la estructura de los escenarios
+4 y 5, un golden propio del escenario 4, y la afirmación central del documento como
+test falsable (con pared el serotipo 2 supera en más del 10 % al control sin pared,
+para `σ = 1,5` y `σ = 0,5`). Total: 48 tests en unos 6 segundos.
 
 ## 6. Rendimiento: acoplamiento denso vs. disperso
 
@@ -124,11 +146,33 @@ El speedup crece con `n` porque la ruta densa es `O(n²)` y la dispersa `O(n)`; 
   `2` en las esquinas. El frente de onda se deforma al llegar al borde por esta
   razón artificial, no por una propiedad epidemiológica.
 - **`σ = 1.5` por defecto: régimen de *enhancement* (ADE).** La infección primaria
-  facilita la secundaria en vez de proteger contra ella. Esto es lo que hace que el
-  escenario "Cortafuegos" no aísle con `c ≥ 2`: una pared de inmunidad
-  monoserotípica vuelve a esos nodos *más* susceptibles al resto de las cepas, no
-  menos. No es un bug — es un resultado del modelo bajo ADE, documentado para el
-  desarrollo teórico (TEX) del proyecto.
+  facilita la secundaria en vez de proteger contra ella. Cualquier resultado con los
+  parámetros por defecto debe leerse en ese régimen; `--sigma` permite cambiarlo.
+- **La pared de inmunidad no aísla, y no por la razón que uno esperaría.** El
+  escenario 2 pone una pared de recuperados del serotipo 1 frente a un brote de ese
+  mismo serotipo: la pared retrasa el frente unos días pero no lo bloquea, porque los
+  mosquitos de la pared se infectan de los humanos vecinos y transmiten al otro lado
+  (la barrera es de hospedadores, no de vector). Cuando circula además un segundo
+  serotipo (escenario 4), la pared se convierte en un reservorio de hospedadores que
+  le llega intacto al serotipo 2 y lo amplifica, en los dos regímenes de `σ`. Con la
+  grilla 5×9 y `c = 2` (`python scripts/reproducir_reservorio.py`):
+
+  | Configuración | Pico serotipo 2, mitad derecha | Pico en la pared |
+  |---|---|---|
+  | σ=1,5 con pared (esc. 4) | 0,46 | 0,53 |
+  | σ=1,5 sin pared (esc. 5) | 0,33 | — |
+  | σ=0,5 con pared (esc. 4) | 0,40 | 0,34 |
+  | σ=0,5 sin pared (esc. 5) | 0,27 | — |
+
+  Es el resultado central de la sección 1.3 del documento LaTeX (`docs/Estudio.tex`)
+  y está cubierto por un test (`tests/test_reservorio.py`): con pared > sin pared para
+  ambos `σ`. No es un bug — es un resultado del modelo.
+
+  ![Escenario 4: la pared de recuperados (columna central) se infecta con el serotipo 2 y lo amplifica](docs/reservorio.gif)
+
+  *Escenario 4 en la grilla 5×9 (`python run.py --nodos 45 --cepas 2 --escenario 4
+  --t-final 60 --salida docs/reservorio.gif`, diezmado a la mitad de los cuadros para
+  el tamaño del archivo). Compárese con el escenario 2, donde la pared queda oscura.*
 - **Sin forzado estacional.** Los parámetros de transmisión son constantes en el
   tiempo; el modelo no captura la estacionalidad del vector.
 - **No calibrado contra datos reales.** Los parámetros por defecto son los del
@@ -166,7 +210,10 @@ dengue/
   scenarios.py  condiciones_iniciales por escenario
   sparse.py     ruta de acoplamiento disperso opt-in (--sparse)
 run.py          punto de entrada de línea de comandos
+scripts/
+  reproducir_reservorio.py   regenera la tabla del efecto de reservorio (escenarios 4 vs 5)
 tests/          suite de verificación (ver tests/README.md)
+docs/           Estudio.tex (documento LaTeX), demo.gif
 HALLAZGOS.md    decisiones y hallazgos de cada sesión (no versionado)
 ```
 
