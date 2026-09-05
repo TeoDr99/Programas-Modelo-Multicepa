@@ -1,10 +1,12 @@
-"""Simulación interactiva del modelo multicepa de dengue con estructura espacial.
+"""Simulación del modelo multicepa de dengue con estructura espacial.
 
-Este es el script original (``Estudio de modelo epidemológico - C1.py``) con el
-modelo movido a ``dengue/model.py``. Pide por consola el número de nodos, de
-cepas y el escenario, integra el sistema y muestra una animación del total de
-infectados sobre la grilla.
+Punto de entrada de línea de comandos. Arma la red espacial, integra el
+sistema de EDOs y anima el total de infectados sobre la grilla. Ejecutar
+``python run.py --help`` para ver las opciones.
 """
+
+import argparse
+import sys
 
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -18,85 +20,86 @@ from dengue.network import (
 )
 from dengue.scenarios import condiciones_iniciales
 
+SEMILLA_ESCENARIO_3 = 42  # ver HALLAZGOS.md: congelada a propósito, el golden depende de ella.
+
+EPILOGO_ESCENARIOS = """\
+Escenarios (--escenario):
+  0: Estado limpio, sin siembra. Útil como punto de partida para sembrar a mano.
+  1: Choque de Ondas. Dos infecciones en esquinas opuestas: simetría y competencia espacial.
+  2: Cortafuegos. Pared de inmunidad en el centro (ver limitaciones en el README: con
+     sigma > 1 la pared no aísla, es un resultado del modelo, no un bug).
+  3: Ruido Estocástico (default). Focos aleatorios; usa una semilla fija internamente.
+"""
+
+
+def entero_positivo(valor: str) -> int:
+    """Valida que ``valor`` sea un entero >= 1 (para --nodos y --cepas)."""
+    try:
+        ivalor = int(valor)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"debe ser un entero, se recibió: {valor!r}")
+    if ivalor < 1:
+        raise argparse.ArgumentTypeError(f"debe ser >= 1, se recibió: {ivalor}")
+    return ivalor
+
+
+def construir_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Simula el modelo multicepa de dengue con estructura espacial.",
+        epilog=EPILOGO_ESCENARIOS,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--nodos", type=entero_positivo, default=100,
+                        help="número de nodos de la grilla (default: 100)")
+    parser.add_argument("--cepas", type=entero_positivo, default=2,
+                        help="número de serotipos (default: 2)")
+    parser.add_argument("--escenario", type=int, choices=[0, 1, 2, 3], default=3,
+                        help="condición inicial a usar (default: 3; ver detalle abajo)")
+    parser.add_argument("--t-final", type=float, default=200.0, dest="t_final",
+                        help="tiempo final de la integración, en días (default: 200)")
+    parser.add_argument("--semilla", type=int, default=SEMILLA_ESCENARIO_3,
+                        help="semilla del RNG (default: 42). Hoy no cambia ningún resultado: "
+                             "los escenarios 0/1/2 son determinísticos y el escenario 3 tiene "
+                             "su semilla congelada en 42 (ver HALLAZGOS.md). Se acepta por "
+                             "completitud de la CLI y para escenarios aleatorios futuros")
+    return parser
+
 
 def main() -> None:
-    # ========================================================================
-    # 1. CONFIGURACIÓN INTERACTIVA
-    # ========================================================================
-    print("=== CONFIGURACIÓN DEL MODELO ===")
+    args = construir_parser().parse_args()
 
-    # --- A. SELECCIÓN DE NODOS ---
-    try:
-        raw_n = input(">> Ingrese número de nodos (ej. 100, 400, 2500): ")
-        n_deseado = int(raw_n)
-    except ValueError:
-        n_deseado = 100
-        print(f"⚠️ Valor inválido. Usando defecto: {n_deseado}")
+    if args.escenario == 3 and args.semilla != SEMILLA_ESCENARIO_3:
+        print(f"aviso: --semilla {args.semilla} se ignora en el escenario 3, cuya semilla "
+              f"está congelada en {SEMILLA_ESCENARIO_3} (ver HALLAZGOS.md)", file=sys.stderr)
 
-    # Cálculo de geometría rectangular
-    grid_rows, grid_cols, n = geometria_grilla(n_deseado)
-    print(f"-> Topología: {grid_rows}x{grid_cols} ({n} nodos)")
+    grid_rows, grid_cols, n = geometria_grilla(args.nodos)
+    c = args.cepas
+    print(f"-> Topología: {grid_rows}x{grid_cols} ({n} nodos), {c} cepa(s), "
+          f"escenario {args.escenario}")
 
-    # --- B. SELECCIÓN DE CEPAS ---
-    try:
-        raw_c = input(">> Ingrese número de cepas (ej. 1, 2, 10): ")
-        c = int(raw_c)
-        if c < 1: raise ValueError
-    except ValueError:
-        c = 2
-        print(f"⚠️ Valor inválido. Usando defecto: {c}")
-
-    print("\nEscenarios:")
-    print("   1: Choque de Ondas (Simetría)")
-    print("   2: Cortafuegos (Test de Barrera)")
-    print("   3: Ruido Estocástico (Aleatorio)")
-    try:
-        raw_esc = input(">> Elija Escenario (1-3): ")
-        ESCENARIO = int(raw_esc)
-    except ValueError:
-        ESCENARIO = 3
-        print("⚠️ Usando defecto: 3")
-
-    # ========================================================================
-    # 2. GESTIÓN DE MEMORIA
-    # ========================================================================
     dims = Dimensiones(n, c)
 
-    # ========================================================================
-    # 4. PARAMETRIZACIÓN
-    # ========================================================================
     mu_val, gamma_val, v_val = MU_DEFAULT, GAMMA_DEFAULT, NU_DEFAULT
     beta_h, beta_v, coupling = BETA_H_DEFAULT, BETA_V_DEFAULT, COUPLING_DEFAULT
     N_pop = np.ones(n)
 
-    # Matriz Adyacencia (Primeros Vecinos)
     print("Generando red espacial...")
     lam, delta = build_network(grid_rows, grid_cols, c, beta_h, beta_v, coupling)
     sigma = sigma_default(c)
 
-    # ========================================================================
-    # 5. CONDICIONES INICIALES
-    # ========================================================================
-    # 1. Choque de Ondas: Inicia dos infecciones en esquinas opuestas (Top-Left vs Bottom-Right).
-    #    - Objetivo: Verificar la simetría de la propagación y la competencia espacial entre dos cepas.
-    # 2. Cortafuegos: Crea una pared de inmunidad (Recuperados Z) en el centro del mapa.
-    #    - Objetivo: Verificar la física del modelo. La infección NO debe atravesar la pared.
-    #    - Nota: Ideal para chequear que no haya "fugas" numéricas o teletransportación.
-    # 3. Ruido Estocástico: Siembra múltiples focos infecciosos aleatorios por toda la red.
-    #    - Objetivo: Simular un brote realista desordenado y probar la estabilidad numérica con muchas cepas.
-    S0, I0, Z0, Y0, V0 = condiciones_iniciales(ESCENARIO, grid_rows, grid_cols, c, N_pop)
+    S0, I0, Z0, Y0, V0 = condiciones_iniciales(args.escenario, grid_rows, grid_cols, c, N_pop)
     x0 = Mapeo(S0, I0, Z0, Y0, V0)
 
     print("Integrando (esto puede demorar)...")
     # Menos puntos temporales para acelerar animación (300 frames)
-    t_eval = np.linspace(0, 200, 300)
-    sol = solve_ivp(Modelo, (0, 200), x0, t_eval=t_eval,
+    t_eval = np.linspace(0, args.t_final, 300)
+    sol = solve_ivp(Modelo, (0, args.t_final), x0, t_eval=t_eval,
                     args=(lam, mu_val, gamma_val, sigma, delta, v_val, N_pop, dims),
                     method='RK45')
     print("Integración lista.")
 
     # ========================================================================
-    # 6. VISUALIZACIÓN DE SIMULACIÓN (ANIMACIÓN)
+    # VISUALIZACIÓN DE SIMULACIÓN (ANIMACIÓN)
     # ========================================================================
     print("Generando animación...")
 
