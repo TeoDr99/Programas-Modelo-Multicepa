@@ -19,6 +19,7 @@ from dengue.network import (
     BETA_H_DEFAULT, BETA_V_DEFAULT, COUPLING_DEFAULT,
 )
 from dengue.scenarios import condiciones_iniciales
+from dengue.sparse import ModeloDisperso, build_network_disperso
 
 SEMILLA_ESCENARIO_3 = 42  # ver HALLAZGOS.md: congelada a propósito, el golden depende de ella.
 
@@ -62,6 +63,9 @@ def construir_parser() -> argparse.ArgumentParser:
                              "los escenarios 0/1/2 son determinísticos y el escenario 3 tiene "
                              "su semilla congelada en 42 (ver HALLAZGOS.md). Se acepta por "
                              "completitud de la CLI y para escenarios aleatorios futuros")
+    parser.add_argument("--sparse", action="store_true",
+                        help="usar el acoplamiento disperso (más rápido para --nodos grande; "
+                             "ver la sección de rendimiento del README). Apagado por defecto")
     return parser
 
 
@@ -83,8 +87,13 @@ def main() -> None:
     beta_h, beta_v, coupling = BETA_H_DEFAULT, BETA_V_DEFAULT, COUPLING_DEFAULT
     N_pop = np.ones(n)
 
-    print("Generando red espacial...")
-    lam, delta = build_network(grid_rows, grid_cols, c, beta_h, beta_v, coupling)
+    print(f"Generando red espacial ({'dispersa' if args.sparse else 'densa'})...")
+    if args.sparse:
+        lam, delta = build_network_disperso(grid_rows, grid_cols, c, beta_h, beta_v, coupling)
+        rhs = ModeloDisperso
+    else:
+        lam, delta = build_network(grid_rows, grid_cols, c, beta_h, beta_v, coupling)
+        rhs = Modelo
     sigma = sigma_default(c)
 
     S0, I0, Z0, Y0, V0 = condiciones_iniciales(args.escenario, grid_rows, grid_cols, c, N_pop)
@@ -93,7 +102,7 @@ def main() -> None:
     print("Integrando (esto puede demorar)...")
     # Menos puntos temporales para acelerar animación (300 frames)
     t_eval = np.linspace(0, args.t_final, 300)
-    sol = solve_ivp(Modelo, (0, args.t_final), x0, t_eval=t_eval,
+    sol = solve_ivp(rhs, (0, args.t_final), x0, t_eval=t_eval,
                     args=(lam, mu_val, gamma_val, sigma, delta, v_val, N_pop, dims),
                     method='RK45')
     print("Integración lista.")
