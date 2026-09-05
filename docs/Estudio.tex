@@ -190,6 +190,41 @@ $\varepsilon$ & $0{,}01$ / $0{,}1$ & --- & tamaño de la siembra (escenarios 1 y
 \label{tab:parametros}
 \end{table}
 
+\subsection{Correspondencia con la implementación}\label{sec:codigo}
+
+El sistema \eqref{eq:sistema} está implementado en el módulo \texttt{dengue/model.py} del repositorio que acompaña a este documento; la red \eqref{eq:red} en \texttt{dengue/network.py} y las condiciones iniciales de la sección~\ref{sec:experimentos} en \texttt{dengue/scenarios.py}. La tabla~\ref{tab:correspondencia} da la correspondencia entre la notación de este texto y las variables del código, con la forma de cada arreglo; $n$ es el número de parches y $c$ el de serotipos.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llll}
+\hline
+Símbolo & Variable & Forma & Significado \\
+\hline
+$S_l$ & \texttt{S} & \texttt{(n,)} & humanos susceptibles a todos los serotipos \\
+$I_{li}$ & \texttt{I} & \texttt{(n, c)} & infección primaria por el serotipo $i$ \\
+$Z_{li}$ & \texttt{Z} & \texttt{(n, c)} & recuperados de la primaria por $i$, susceptibles al resto \\
+$Y_{lij}$ & \texttt{Y} & \texttt{(n, c, c)} & infección secundaria: primaria por $i$, secundaria por $j$ \\
+$V_{li}$ & \texttt{V} & \texttt{(n, c)} & mosquitos infectados por el serotipo $i$ \\
+$\lambda_{lim}$ & \texttt{lam} & \texttt{(n, c, n)} & fuerza de infección sobre humanos de $l$ por mosquitos de $m$, serotipo $i$ \\
+$\delta_{lim}$ & \texttt{delta} & \texttt{(n, c, n)} & infección de mosquitos de $l$ por humanos de $m$, serotipo $i$ \\
+$\sigma_{ij}$ & \texttt{sigma} & \texttt{(c, c)} & efecto cruzado: primaria $i\to$ secundaria $j$ \\
+$N_l$ & \texttt{N\_pop} & \texttt{(n,)} & población normalizada de cada parche (todo unos) \\
+$\mu,\ \gamma,\ \nu$ & \texttt{mu}, \texttt{gamma}, \texttt{v} & escalares & natalidad/mortalidad humana, recuperación, mortalidad del mosquito \\
+\hline
+\end{tabular}
+\caption{Correspondencia entre la notación del documento y las variables de la implementación. Los índices del código empiezan en $0$: el serotipo $i$ del texto es la columna $i-1$ del arreglo, y el parche $l$ la fila $l-1$.}
+\label{tab:correspondencia}
+\end{table}
+
+Algunas convenciones del código que conviene tener presentes al leer las ecuaciones:
+
+\begin{itemize}
+\item \textbf{Vector de estado.} El integrador trabaja con un único vector formado por los bloques $S, I, Z, Y, V$, en ese orden, cada uno aplanado en \emph{orden Fortran} (\texttt{order='F'}): dentro de cada bloque el índice de parche varía más rápido, luego el primer índice de serotipo y por último el segundo. Así, las primeras $n$ componentes del bloque de $I$ son $I_{l1}$ para $l=1,\dots,n$, y en el bloque de $Y$ el orden es $Y_{l11}, Y_{l21}, \dots$ (primaria variando antes que secundaria). Los cortes entre bloques son las sumas acumuladas de $n,\ nc,\ nc,\ nc^2,\ nc$; la visualización y el test de regresión dependen de este orden, y el test T1 lo fija explícitamente.
+\item \textbf{Contracciones.} Los términos de \eqref{eq:sistema} se calculan con tres contracciones tensoriales que conviene leer con la tabla a la vista: $\sum_m\lambda_{lim}V_{mi}$ es \texttt{einsum('lim,mi->li', lam, V)}; $\sigma_{ij}Z_{li}\sum_m\lambda_{ljm}V_{mj}$ es \texttt{einsum('li,lj,ij->lij', Z, TasaCont, sigma*mask)} con \texttt{mask} $=1-\mathbbm{1}_{i=j}$ (es la convención \eqref{eq:sigma-diag}); y $\sum_m\delta_{lim}(I_{mi}+\sum_k Y_{mki})$ es \texttt{einsum('l,lim,mi->li', Sv, delta, H)} con \texttt{H = I + Y.sum(axis=1)}, donde la suma sobre el eje $1$ de \texttt{Y} es la suma sobre el serotipo \emph{primario} $k$, coherente con la convención de índices de $Y$.
+\item \textbf{$Z_l$ no tiene variable propia.} Los recuperados de ambas infecciones no se integran; se recuperan por la relación de cierre \eqref{eq:cierre} (sección~\ref{sec:conservacion}).
+\item \textbf{Acoplamiento denso y disperso.} \texttt{lam} y \texttt{delta} se construyen densos, de forma \texttt{(n, c, n)}, con solo $\sim 5$ entradas no nulas por parche. Como en \eqref{eq:red} no dependen del serotipo, existe una ruta alternativa (\texttt{dengue/sparse.py}) que los representa como una sola matriz dispersa \texttt{(n, n)} y reemplaza las dos contracciones que los involucran por productos matriz--vector; ambas rutas coinciden a $10^{-10}$ y la densa es la de referencia.
+\end{itemize}
+
 \section{Equilibrio Endémico}
 Queremos saber bajo que condiciones existe solución al sistema 
 \begin{align*}
