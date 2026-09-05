@@ -95,6 +95,34 @@ De acuerdo con las suposiciones anteriores, obtenemos el siguiente sistema de ec
 \end{equation}
 para $l=1,\dots,n$ e $i,j=1,\dots,4$. En la ecuación de $Z_{li}$ la suma sobre $j$ recorre en efecto solo los $j\neq i$ por \eqref{eq:sigma-diag}; en la de $V_{li}$, $\sum_{k\neq i}Y_{mki}$ son los humanos del parche $m$ con infección secundaria por $i$, cualquiera sea su serotipo primario $k$. Las matrices de acoplamiento son $\lambda_{lim}$ (fuerza de infección sobre los humanos del parche $l$ ejercida por los mosquitos del parche $m$, serotipo $i$) y $\delta_{lim}$ (infección de los mosquitos del parche $l$ por los humanos del parche $m$, serotipo $i$); su forma concreta para una grilla se da en la sección~\ref{sec:experimentos}.
 
+\subsection{Identidad de conservación}\label{sec:conservacion}
+
+El sistema \eqref{eq:sistema} no lleva una ecuación para los recuperados de ambas infecciones, $Z_l$: esa masa sale del sistema rastreado por el término $-\gamma Y_{lij}$ y no vuelve (no hay reinfección triple). Conviene hacer explícito qué se conserva. Sea
+\begin{equation}\label{eq:T}
+T_l = S_l+\sum_{i=1}^4 I_{li}+\sum_{i=1}^4 Z_{li}+\sum_{i,j=1}^4 Y_{lij}
+\end{equation}
+la proporción de humanos del parche $l$ que el sistema rastrea. Sumando las cuatro ecuaciones humanas de \eqref{eq:sistema}, los términos de transferencia entre compartimentos se cancelan por pares: la incidencia primaria $S_l\sum_m\lambda_{lim}V_{mi}$ sale de $S_l$ y entra en $I_{li}$; la recuperación $\gamma I_{li}$ sale de $I_{li}$ y entra en $Z_{li}$; la incidencia secundaria $\sigma_{ij}Z_{li}\sum_m\lambda_{ljm}V_{mj}$ sale de $Z_{li}$ y entra en $Y_{lij}$. Solo sobreviven la natalidad, la mortalidad y la salida por recuperación de la infección secundaria:
+\begin{equation}\label{eq:conservacion}
+\frac{d T_l}{dt}=\mu N_l-\mu\,T_l-\gamma\sum_{i,j=1}^4 Y_{lij},
+\end{equation}
+donde escribimos $N_l$ por la población normalizada del parche ($N_l=1$ en proporciones; la implementación la lleva explícita, sección~\ref{sec:adimensional}). Si se introduce el compartimento faltante con su ecuación natural,
+\begin{equation}\label{eq:Zl}
+\frac{dZ_l}{dt}=\gamma\sum_{i,j=1}^4 Y_{lij}-\mu Z_l,
+\end{equation}
+entonces $\frac{d}{dt}(T_l+Z_l)=\mu\,(N_l-T_l-Z_l)$, de modo que
+\begin{equation}\label{eq:invariante}
+T_l(t)+Z_l(t)=N_l\qquad\text{para todo }t\ge 0
+\end{equation}
+es un invariante \emph{exacto} del sistema ampliado siempre que se inicialice $Z_l(0)=N_l-T_l(0)$. Esto es lo que justifica la relación de cierre \eqref{eq:cierre}: la implementación no integra $Z_l$, lo obtiene por diferencia.
+
+La identidad \eqref{eq:conservacion} vale también refinada por serotipo primario. Sumando la ecuación de $Z_{li}$ con las de $Y_{lij}$ sobre $j$, la incidencia secundaria se cancela y queda
+\begin{equation}\label{eq:conservacion-cepa}
+\frac{d}{dt}\Big(Z_{li}+\sum_{j=1}^4 Y_{lij}\Big)=\gamma I_{li}-\mu Z_{li}-(\mu+\gamma)\sum_{j=1}^4 Y_{lij},\qquad i=1,\dots,4,
+\end{equation}
+que dice que la masa que sale de $Z_{li}$ por infección secundaria entra en $Y_{li\,\cdot}$, con el mismo serotipo primario, y no en otro lugar.
+
+Estas identidades son el contenido del test T2 de la suite numérica que acompaña al documento (\texttt{tests/test\_conservacion.py}): se evalúa el lado derecho de \eqref{eq:sistema} en estados admisibles aleatorios y se verifican \eqref{eq:conservacion} y \eqref{eq:conservacion-cepa} con tolerancia relativa $10^{-12}$, sin integrar. Un error de índice que mande masa a un compartimento equivocado rompe \eqref{eq:conservacion}; uno que la mande al serotipo equivocado rompe \eqref{eq:conservacion-cepa}. El test T3 verifica la versión integrada, \eqref{eq:invariante}, sobre una trayectoria completa, integrando $Z_l$ como estado extra.
+
 \section{Equilibrio Endémico}
 Queremos saber bajo que condiciones existe solución al sistema 
 \begin{align*}
