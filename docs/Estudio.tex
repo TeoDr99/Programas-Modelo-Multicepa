@@ -1,0 +1,276 @@
+\documentclass{article}
+\usepackage{algorithmic}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage{graphicx}
+%\usepackage{esint}
+\usepackage[shortlabels]{enumitem}
+\usepackage[spanish]{babel}
+\usepackage{subfig}
+
+\usepackage{bbm}
+\usepackage{amsthm}
+\newtheorem{theorem}{Teorema}
+\usepackage{amsthm}
+\usepackage{gensymb}
+\usepackage{appendix}
+\newcommand\myeq{\stackrel{\mathclap{\normalfont\mbox{*}}}{=}}
+\usepackage[top=1.3cm, bottom=2.0cm, outer=2.5cm, inner=2.5cm, heightrounded,
+marginparwidth=2cm, marginparsep=0.4cm, margin=2.5cm]{geometry}
+\usepackage{mathtools, amssymb, bm, commath, amsmath, esvect, siunitx, physics, blindtext, hyperref}
+
+
+\usepackage{changes}
+\numberwithin{equation}{section}
+
+ \usepackage{todonotes}
+\usepackage{marginnote}
+\let\marginpar\marginnote
+\newcommand{\cometex}[1]{\textrm{\todo{#1}}}
+\begin{document}
+	\title{Estudio de modelos matemáticos estructurados para la transmisión del dengue}
+	\date{}
+	\author{Teo Demergasso}
+
+\maketitle
+
+\section{Modelo Matemático}
+El modelo presentado es una generalización del modelo planteado por Robert G.S. de Araújo en el paper ''Applying a multi-strain dengue model to epidemics data'' para un número $n$ de compartimentos o parches con el objetivo de examinar el efecto del movimiento del hospedador en la dinámica de transmisión del dengue. Consideramos que hay cuatro serotipos circulantes y modelamos las infecciones primarias y secundarias por dengue. Para este fin, la población humana se divide en susceptible a los cuatro serotipos $\bar{S}_{l}$; infectados primariamente por uno de los cuatro serotipos $\left(\bar{I}_{li}\right), i=1, \ldots, 4$ perteneciente al compartimento $l$, $l=1,2,\dots,n$; recuperados de la primera infección con el serotipo $i$ $\left(\bar{Z}_{li}\right)$ pero susceptibles al serotipo $k=1, \ldots, 4$ con $k \neq i$; infectados inicialmente por el serotipo $k=1, \ldots, 4$ con $k \neq i$ e infectados secundariamente por el serotipo $i\left(\bar{Y}_{lik}\right)$; y recuperados de ambas infecciones \highlight[comment={No sería independiente de $i$}]{$(\bar{Z}_{li})$}. La población de mosquitos se divide en susceptibles, $\bar{V}_{s}$, e infectados por el serotipo $\bar{V}_{mi}, i=1 \ldots, 4$ y proveniente del parche $m=1,2,\dots$. (Suponemos que, debido a su corta vida, los mosquitos solo pueden infectarse con dengue una vez). Para contabilizar el total de humanos infectados por el serotipo $i$, es necesario sumar $\sum_{l=1}\left(I_{li}+\sum_{k=1}^4 Y_{lik}\right)$ con $k \neq i$.
+
+Un individuo susceptible $S$ se infecta con el serotipo $i$ al ser picado por un mosquito infectado a una tasa $\lambda_{lim} \bar{V}_{mi} S_l$ con $i=1, \ldots, 4$. Los individuos que han sido infectados con el serotipo $i$ pueden tener una segunda infección de dengue con un serotipo diferente $k$ a una tasa \highlight[comment={Sera $j=k$?}]{$\sigma_{ij} \lambda_{lim}$}, con $i, k=1, \ldots, 4, i \neq k$. Un individuo infectado por un serotipo se vuelve permanentemente inmune a este serotipo, pero susceptible a los demás, lo que lleva a casos secundarios. Supongamos que la infección primaria se debe al serotipo $i$. Si \highlight[comment={$\sigma_{ij}$?}]{$\sigma_{ij}=1$}, la infección por el serotipo $i$ no altera la susceptibilidad a la infección por el serotipo $k$. Si $0 \leq \sigma_{ij}<1$, el serotipo $i$ confiere inmunidad parcial o total al serotipo $k$. Si $\sigma_{li kj}>1$, la infección por el serotipo $i$ aumenta la susceptibilidad al serotipo $k$. Por lo tanto, en nuestro modelo, $\sigma_{likj}$ puede asumir valores menores o mayores que uno, ya que representa el resultado neto del efecto cruzado sobre la intensidad de la tasa de infección.
+
+Debido a la corta vida de los mosquitos, no pueden reinfectarse con otro serotipo. Además, aunque los humanos pueden contraer dengue hemorrágico (la forma más grave de la enfermedad), la mortalidad por esta enfermedad es baja, por lo que podemos ignorarla. Asimismo, asumimos las mismas tasas de mortalidad y recuperación humanas para todos los serotipos, ya que no encontramos evidencia que sugiera alguna diferencia. Según estos supuestos, podemos suponer que las poblaciones humanas y de mosquitos, denotadas por $N_h$ y $N_m$, respectivamente, son constantes, con tasas de mortalidad natural dadas por $\mu$ y $v$, respectivamente. Para simplificar el modelo, tomamos proporciones en ambas poblaciones, que vienen dadas por:
+\comment{No entiendo estas igualdades. Sobra una sumatoria en los primeros miembros?}
+
+$$
+\begin{aligned}
+& \sum_{l=1}S_{li} = \frac{\sum_{l=1}\overline{S}_{li}}{\sum_{l=1}N_{hl}}, \quad \sum_{l=1}I_{li}=\frac{\sum_{l=1}\bar{I}_{li}}{\sum_{l=1}N_{hl}}, \quad \sum_{l=1}Z_{li} = \frac{\sum_{l=1}\bar{Z}_{li}}{\sum_{l=1}N_{hl}}, \quad \sum_{l=1}Y_{lik} = \frac{\sum_{l=1}\bar{Y}_{lik}}{\sum_{l=1}N_{lh}}, \\
+& \sum_{l=1}Z_{li} = 1-\sum_{l=1}S_{l}-\sum_{l=1}\sum_{i=1}^4\left(I_{li}+Z_i+\sum_{k=1, k \neq i}^4 Y_{lik}\right) \quad i, k = 1, \ldots, 4,
+\end{aligned}
+$$
+
+y
+
+$$
+\sum_{l=1}V_1 = \frac{\sum_{l=1}\bar{V}_{l1}}{\sum_{l=1}N_{vl}}, \quad \sum_{l=1}V_{l2} = \frac{\sum_{l=1}\bar{V}_{l2}}{\sum_{l=1}N_{vl}}, \quad \sum_{l=1}V_{l3}=\frac{\sum_{l=1}\bar{V}_3}{\sum_{ l=1}N_{vl}}, \quad \sum_{l=1}V_{l4}=\frac{\sum_{l=1}\bar{V}_{4l}}{\sum_{l=1}N_{vl}} \quad \sum_{l=1}V_{sl}=1-\sum_{l=1}\sum_{i=1}^4 V_{li}
+$$
+
+De acuerdo con las suposiciones anteriores, obtenemos el siguiente sistema de ecuaciones diferenciales ordinarias con 25 ecuaciones por cada nodo:
+
+\begin{align*}
+    \frac{d S_l}{d t} & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \quad\quad l=1,\dots, n\\
+    \frac{d I_{li}}{d t} & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma_{li}+\mu\right) I_{li}, \quad\quad l=1,\dots, n\quad\quad i=1,\dots,4\\
+    \frac{d Z_{li}}{d t} & =\gamma_{li} I_{li}-Z_{li}\sum_{k=1}^4\sigma_{ik}\sum_{m=1}^n  \lambda_{lkm}V_{mk}-\mu Z_{li}, \quad\quad l=1,\dots, n \quad\quad i=1,\dots,4 \\
+    \frac{d Y_{lij}}{d t} & =Z_{li}\sigma_{ij}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma_{lj}\right) Y_{lij}, \quad\quad l=1,\dots, n\quad\quad i,j=1,\dots,4\\
+    \frac{d V_{li}}{d t} & =\left(1-\sum_{v=1}^4 V_{lv}\right)\left[\sum_{m=1}^n\delta_{lim}\left(I_{mi}+\sum_{k=1}^4 Y_{mki}\right)\right]-v V_{li}\quad\quad l=1,\dots, n\quad\quad i=1,\dots,4
+\end{align*}
+
+\begin{align*}
+    \frac{\mathbf{}}{}
+\end{align*}
+
+\section{Equilibrio Endémico}
+Queremos saber bajo que condiciones existe solución al sistema 
+\begin{align*}
+    0 & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \quad\quad l=1,\dots, n\\
+    0 & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma_{li}+\mu\right) I_{li}, \quad\quad l=1,\dots, n\quad\quad i=1,\dots,4\\
+    0 & =\gamma_{li} I_{li}-Z_{li}\sum_{k=1}^4\sigma_{ik}\sum_{m=1}^n  \lambda_{lkm}V_{mk}-\mu Z_{li}, \quad\quad l=1,\dots, n \quad\quad i=1,\dots,4 \\
+    0 & =Z_{li}\sigma_{ij}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma_{lj}\right) Y_{lij}, \quad\quad l=1,\dots, n\quad\quad i,j=1,\dots,4\\
+    0 & =\left(1-\sum_{j=1}^4 V_{lj}\right)\left[\sum_{m=1}^n\delta_{lim}\left(I_{mi}+\sum_{k=1}^4 Y_{mki}\right)\right]-v V_{li}\quad\quad l=1,\dots, n\quad\quad i,k=1,\dots,4\text{ con }k\neq i
+\end{align*}
+Para simplificar el problema, consideremos primero el caso en el que hay solo nodo. 
+\begin{align*}
+    0 & =\mu N-S\sum_{i=1}^4 \lambda_{i} V_{i} -\mu S, \quad\quad \\
+    0 & =S\lambda_{i} V_{i} -\left(\gamma_{i}+\mu\right) I_{i}, \quad\quad  i=1,\dots,4\\
+    0 & =\gamma_{i} I_{i}-Z_{i}\sum_{k=1}^4\sigma_{ik}  \lambda_{k}V_{k}-\mu Z_{i}, \quad\quad  i=1,\dots,4\text{ con } \\
+    0 & =Z_{i}\sigma_{ij}\lambda_{j}V_{j}-\left(\mu+\gamma_{j}\right) Y_{ij}, \quad\quad  i,j=1,\dots,4\\
+    0 & =\left(1-\sum_{v=1}^4 V_{v}\right)\left[\delta_{i}\left(I_{i}+\sum_{k=1}^4 Y_{ki}\right)\right]-v V_{i}\quad\quad  i=1,\dots,4
+\end{align*}
+
+\paragraph{Versión preliminar}
+Específicamente, debemos buscar condiciones que aseguran la ocurrencia de un equilibrio endémico, es decir, un equilibrio diferente del equilibrio libre de enfermedad. 
+
+El sistema de ecuaciones se puede escribir de la forma $\Phi(x) = 0$ donde $x$ representa el vector de variables de estado de las poblaciones humanas y de mosquitos. Sea $\Omega$ el dominio biológico, este es un subconjunto abierto y acotado en $\mathbb{R}^{25}$. La clausura $\text{Cl}\text{ }\Omega$ representa la región biológicamente factible, la cual se define por las siguientes restricciones:
+\begin{itemize}
+    \item Condición de no negatividad: Todas las variables de los compartimentos humanos (susceptibles $S$, infectados primarios $I_i$, recuperados primarios $Z_i$, infectados secundarios $Y_{k i}$ ) y de los vectores (infectados $V_i$) deben ser mayores o iguales a cero $S \geq 0, \quad I_i \geq 0, \quad Z_i \geq 0, \quad Y_{k i} \geq 0, \quad V_i \geq 0$ para $i, k \in\{1,2,3,4\}$, $k \neq i$.
+
+    \item Condición de conservación de la población humana: La proporción de humanos totalmente recuperados e inmunes a todos los serotipos se define como $Z$. Puesto que $Z$ no puede ser negativa ($Z \geq 0$), la suma del resto de los compartimentos humanos está acotada por $S+ \sum_{i=1}^4\left(I_i+Z_i+\sum_{k=1, k \neq i}^4 Y_{i k}\right) \leq 1$.
+    
+    \item Condición de conservación de la población de mosquitos: De manera análoga, la proporción de mosquitos susceptibles se define como $V_s=1-\sum_{i=1}^4 V_i$. Como la población susceptible no puede ser negativa $\left(V_s \geq 0\right)$, los mosquitos infectados están acotados por: $\sum_{i=1}^4 V_i \leq 1$.
+\end{itemize}
+
+El Teorema de Existencia de Puntos Singulares (teorema 4.2 de ''Geometrical Methods of Nonlinear Analysis - M. A. Krasnosel'Skii'') establece que si un campo vectorial continuo $\Phi$ no tiene singularidades en la frontera $\partial \Omega$ y su "rotación" $\gamma(\Phi, \Omega)$ es distinta de cero, entonces $\Phi$ tiene al menos un punto singular en el interior de $\Omega$. El Teorema 4.3 a su vez establece que, para un conjunto abierto y acotado, $\Omega$ donde el campo no tiene singularidades en su frontera $\partial \Omega$ la rotación total $\gamma(\Phi,\Omega)$ es igual a la suma de los índices de sus puntos singulares aislados: $\gamma(\Phi,\Omega) = \sum_{i=1}^s \text{ind}(x_i, \Phi)$. Sin embargo, el equilibrio libre de enfermedad se encuentra explícitamente en la frontera de este dominio (es decir, en $\partial \Omega$), puesto que allí todas las variables infecciosas $\left(I_i, Y_{k i}, V_i\right)$ son nulas; por lo tanto, debemos considerar un dominio $\Omega'$ que sea una extensión del dominio biológico hacia el espacio de coordenadas negativas. Al expandir ligeramente el dominio, el equilibrio libre de enfermedad pasa a ser un punto estrictamente interior, y la frontera $\partial \Omega'$ no posee puntos singulares. 
+
+Sea $x_0$ el equilibrio libre de enfermedad y $\Phi'(x)$ la matriz jacobiana de $\Phi$, el teorema 6.3 establece que si $\text{det}\text{ }\Phi'(x_0) \not= 0$ entonces $x_0$ es un \textit{punto singular aislado} (epidemiológicamente esto ocurre cuando $\mathcal{R}_0\not= 1$) y $\text{ind}(x_0,\Phi) = (-1)^{-\beta}$ con $\beta$ la suma de las multiplicidades de los autovalores reales negativos de la matriz Jacobiana en $x_0$. Cuando $\mathcal{R}_0$ pasa de ser menor a 1 a ser mayor a 1, un valor propio cruza el eje imaginario y se vuelve positivo, cambiando la paridad de $\beta$  Esto significa que el índice de $x_0$ cambia de signo (por ejemplo, de -1 a +1 o viceversa). Si asumimos que $\mathcal{R}_0>1$, $\text{ind}(x_0,\Phi)$ cambió de signo y, por ende, ya no coincide con la rotación global del dominio $\gamma(\Phi,\Omega') = \sum \text{ind}(x_i, \Phi)$; esto significa que debe existir forzosamente al menos un punto singular adicional $x^\star$ dentro del dominio que compense esta diferencia en la suma. Dado que los flujos de las ecuaciones diferenciales del modelo apuntan hacia adentro del dominio biológico (las poblaciones no pueden ser negativas), este nuevo punto singular no puede estar en la región físicamente imposible (negativa); debe estar en el interior del dominio biológicamente factible. Este punto $x^\star$ debe ser un equilibrio endémico. 
+
+\paragraph{Versión más formal}
+\begin{theorem}[Existencia de equilibrio endémico]\label{thm:endemic_existence}
+Considérese el sistema estacionario asociado al modelo mononodal multicepa de transmisión de dengue,
+\[
+\Phi(x)=0, \qquad \Phi:\mathbb{R}^{25}\to\mathbb{R}^{25},
+\]
+donde $x$ representa el vector de variables de estado humanas y vectoriales. 
+Sea $\Omega \subset \mathbb{R}^{25}$ el dominio biológicamente factible determinado por las restricciones de no negatividad y conservación de población.
+
+Supónganse las siguientes hipótesis:
+
+\begin{enumerate}
+\item[(H1)] $\Phi$ es continuamente diferenciable en un abierto que contiene $\overline{\Omega}$.
+
+\item[(H2)] El dominio biológico $\Omega$ es positivamente invariante para el sistema dinámico asociado, es decir, el campo vectorial apunta hacia el interior en la frontera biológica.
+
+\item[(H3)] Existe un abierto acotado $\Omega' \subset \mathbb{R}^{25}$ tal que 
+$\overline{\Omega} \subset \Omega'$ y 
+\[
+\Phi(x) \neq 0 \quad \text{para todo } x \in \partial \Omega'.
+\]
+
+\item[(H4)] El equilibrio libre de enfermedad $x_0 \in \Omega$ satisface
+\[
+\det \Phi'(x_0) \neq 0.
+\]
+En particular, el número básico de reproducción $\mathcal R_0$ está bien definido y $\mathcal R_0 \neq 1$.
+
+\item[(H5)] Cuando $\mathcal R_0$ cruza el valor crítico $1$, exactamente un autovalor real de $\Phi'(x_0)$ atraviesa transversalmente el eje imaginario.
+\end{enumerate}
+
+Entonces:
+
+\begin{enumerate}
+\item[(i)] El grado (rotación) $\gamma(\Phi,\Omega')$ está bien definido y es constante bajo variaciones continuas de los parámetros que no introduzcan ceros en $\partial \Omega'$.
+
+\item[(ii)] Si $\mathcal R_0 < 1$, el equilibrio libre de enfermedad $x_0$ es el único punto singular de $\Phi$ en $\Omega'$ y
+\[
+\mathrm{ind}(x_0,\Phi)=+1.
+\]
+
+\item[(iii)] Si $\mathcal R_0 > 1$, existe al menos un punto singular adicional
+\[
+x^\ast \in \Omega, \qquad x^\ast \neq x_0.
+\]
+En particular, el sistema admite al menos un equilibrio endémico.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+La demostración se organiza en cuatro pasos, siguiendo la teoría de rotación de campos vectoriales en dimensión finita.
+
+\medskip
+\noindent
+\textbf{Paso 1: Definición del grado en $\Omega'$.}
+
+Por (H1), $\Phi$ es continuamente diferenciable en un abierto que contiene
+$\overline{\Omega'}$. Por (H3), 
+\[
+\Phi(x) \neq 0 \quad \text{para todo } x \in \partial \Omega'.
+\]
+Por lo tanto, la rotación (grado topológico) $\gamma(\Phi,\Omega')$ está bien definida.
+
+Además, por el Teorema 4.2 de Krasnosel’skii, si 
+$\gamma(\Phi,\Omega') \neq 0$, entonces $\Phi$ posee al menos un punto singular
+en el interior de $\Omega'$.
+
+\medskip
+\noindent
+\textbf{Paso 2: Aditividad del grado e índice de puntos singulares aislados.}
+
+Por (H4), el equilibrio libre de enfermedad $x_0$ satisface
+$\det \Phi'(x_0)\neq 0$. En consecuencia, por el Teorema 6.3,
+$x_0$ es un punto singular aislado y su índice viene dado por
+\[
+\mathrm{ind}(x_0,\Phi)
+= \mathrm{sign}\big(\det \Phi'(x_0)\big).
+\]
+
+Si los puntos singulares en $\Omega'$ son aislados, el Teorema 4.3 establece que
+\[
+\gamma(\Phi,\Omega')
+=
+\sum_{x_i \in \Omega'} \mathrm{ind}(x_i,\Phi).
+\]
+
+\medskip
+\noindent
+\textbf{Paso 3: Caso $\mathcal R_0 < 1$.}
+
+Cuando $\mathcal R_0 < 1$, la linealización infecciosa en $x_0$
+es estable. En particular, todos los autovalores de $\Phi'(x_0)$
+tienen parte real negativa y, por consiguiente,
+\[
+\det \Phi'(x_0) > 0.
+\]
+Luego
+\[
+\mathrm{ind}(x_0,\Phi)=+1.
+\]
+
+Por continuidad de $\Phi$ y ausencia de ceros en la frontera
+(H3), el grado coincide con el índice del único punto singular
+en $\Omega'$, es decir,
+\[
+\gamma(\Phi,\Omega')=1.
+\]
+
+\medskip
+\noindent
+\textbf{Paso 4: Caso $\mathcal R_0 > 1$.}
+
+Por (H5), cuando $\mathcal R_0$ cruza el valor crítico $1$,
+exactamente un autovalor real de $\Phi'(x_0)$ atraviesa
+transversalmente el eje imaginario.
+Por lo tanto, al pasar de $\mathcal R_0<1$ a $\mathcal R_0>1$,
+la paridad del número de autovalores con parte real positiva cambia,
+y en consecuencia cambia el signo de $\det \Phi'(x_0)$.
+
+De este modo,
+\[
+\mathrm{ind}(x_0,\Phi)=-1.
+\]
+
+Sin embargo, el grado $\gamma(\Phi,\Omega')$ es invariante
+bajo variaciones continuas de parámetros que no introduzcan ceros
+en $\partial \Omega'$.
+Como la condición (H3) se mantiene, el grado sigue siendo
+\[
+\gamma(\Phi,\Omega')=1.
+\]
+
+Aplicando la fórmula aditiva del grado,
+\[
+\gamma(\Phi,\Omega')
+=
+\mathrm{ind}(x_0,\Phi)
++
+\sum_{x_i \neq x_0} \mathrm{ind}(x_i,\Phi),
+\]
+se obtiene
+\[
+1
+=
+(-1)
++
+\sum_{x_i \neq x_0} \mathrm{ind}(x_i,\Phi),
+\]
+lo que implica
+\[
+\sum_{x_i \neq x_0} \mathrm{ind}(x_i,\Phi)=2.
+\]
+
+En particular, existe al menos un punto singular adicional
+$x^\ast \in \Omega'$ distinto de $x_0$.
+
+Finalmente, por (H2), el dominio biológico $\Omega$
+es positivamente invariante. El campo vectorial apunta hacia el interior
+en la frontera biológica, por lo que ningún punto singular puede ubicarse
+en la región no físicamente admisible.
+Por consiguiente,
+\[
+x^\ast \in \Omega.
+\]
+
+Este punto singular corresponde a un equilibrio endémico.
+
+\end{proof}
+
+\end{document}
