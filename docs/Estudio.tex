@@ -123,6 +123,73 @@ que dice que la masa que sale de $Z_{li}$ por infección secundaria entra en $Y_
 
 Estas identidades son el contenido del test T2 de la suite numérica que acompaña al documento (\texttt{tests/test\_conservacion.py}): se evalúa el lado derecho de \eqref{eq:sistema} en estados admisibles aleatorios y se verifican \eqref{eq:conservacion} y \eqref{eq:conservacion-cepa} con tolerancia relativa $10^{-12}$, sin integrar. Un error de índice que mande masa a un compartimento equivocado rompe \eqref{eq:conservacion}; uno que la mande al serotipo equivocado rompe \eqref{eq:conservacion-cepa}. El test T3 verifica la versión integrada, \eqref{eq:invariante}, sobre una trayectoria completa, integrando $Z_l$ como estado extra.
 
+\subsection{Condiciones iniciales como diseño de experimentos numéricos}\label{sec:experimentos}
+
+Las condiciones iniciales de la implementación no son ejemplos arbitrarios: cada una está construida para responder una pregunta sobre el sistema, y varias de esas preguntas tienen una respuesta que se verifica de forma automática en la suite de tests. Escribimos primero la red espacial concreta y después los tres escenarios.
+
+\paragraph{La red.} Los parches se disponen en una grilla de $R$ filas por $C$ columnas, $n=RC$. Identificamos el parche de la fila $r$ y la columna $c$ con el índice lineal $l=(r-1)C+c$ (en el código los índices empiezan en $0$: $l=rC+c$ con $r=0,\dots,R-1$, $c=0,\dots,C-1$). Sea $A_{lm}\in\{0,1\}$ la matriz de adyacencia de primeros vecinos: $A_{lm}=1$ si los parches $l$ y $m$ son adyacentes en la grilla (arriba, abajo, izquierda o derecha), y $0$ en otro caso; $A$ es simétrica y $A_{ll}=0$. Para no confundir la delta de Kronecker con la matriz de acoplamiento $\delta_{lim}$, escribimos la primera como $\mathbbm{1}_{l=m}$. Las matrices de acoplamiento son
+\begin{equation}\label{eq:red}
+\lambda_{lim}=\beta_h\big(\mathbbm{1}_{l=m}+\kappa A_{lm}\big),\qquad
+\delta_{lim}=\beta_v\big(\mathbbm{1}_{l=m}+\kappa A_{lm}\big),\qquad
+\sigma_{ij}=\sigma\,(1-\mathbbm{1}_{i=j}),
+\end{equation}
+independientes del serotipo $i$: cada parche se acopla consigo mismo con $\beta$ y con sus vecinos con $\beta\kappa$, y el efecto cruzado es el mismo escalar $\sigma$ para todo par de serotipos distintos. Dos observaciones. Primera, $\lambda$ y $\delta$ tienen la misma estructura aunque describen procesos distintos (mosquitos de $m$ que pican humanos de $l$; humanos de $m$ que infectan mosquitos de $l$), lo que genera parámetros no identificables. Segunda, la fuerza de infección total que entra a un parche vale $\beta(1+k\kappa)$ con $k=4$ en el interior de la grilla, $3$ en los bordes y $2$ en las esquinas: la red no está normalizada por filas, y el frente de onda se deforma al llegar al borde por esta razón artificial. Ambas son limitaciones conocidas de la implementación actual.
+
+En todos los escenarios se parte de mosquitos sanos, $V_{li}(0)=0$, sin infecciones secundarias, $Y_{lij}(0)=0$, y con $N_l=1$.
+
+\paragraph{Escenario 1: choque de ondas.} Dos focos en esquinas opuestas, uno por serotipo. Con $l_{\mathrm{TL}}$ el parche $(1,1)$ y $l_{\mathrm{BR}}$ el parche $(R,C)$, y $\varepsilon=0{,}01$,
+\begin{equation}\label{eq:ci-choque}
+I_{li}(0)=\varepsilon\big(\mathbbm{1}_{l=l_{\mathrm{TL}}}\mathbbm{1}_{i=1}+\mathbbm{1}_{l=l_{\mathrm{BR}}}\mathbbm{1}_{i=2}\big),\qquad
+S_l(0)=1-\sum_i I_{li}(0),\qquad Z_{li}(0)=0
+\end{equation}
+(con $c=1$ solo existe el primer foco). La pregunta principal es si el esquema numérico preserva la simetría del sistema. Sea $\rho$ la rotación de la grilla en $180^\circ$, $\rho(r,c)=(R+1-r,\,C+1-c)$. La red \eqref{eq:red} es invariante bajo $\rho$, $\sigma_{ij}$ es simétrica, y la condición inicial \eqref{eq:ci-choque} es invariante bajo $\rho$ compuesta con el intercambio de serotipos $1\leftrightarrow 2$. Por unicidad de la solución, la trayectoria hereda esa simetría:
+\begin{equation}\label{eq:simetria}
+I_{l1}(t)=I_{\rho(l)2}(t),\quad Z_{l1}(t)=Z_{\rho(l)2}(t),\quad V_{l1}(t)=V_{\rho(l)2}(t),\quad Y_{l12}(t)=Y_{\rho(l)21}(t),\quad S_l(t)=S_{\rho(l)}(t)
+\end{equation}
+para todo $t$. Un error de índice en la construcción de la red o en los índices de serotipo de $Y$ rompe \eqref{eq:simetria}; el test T9 la verifica en una grilla $5\times5$ con tolerancia absoluta $10^{-9}$. La segunda pregunta es qué ocurre en el frente de contacto: como $Y_{l12}$ y $Y_{l21}$ solo pueden crecer donde ya circularon ambos serotipos, las infecciones secundarias aparecen exactamente en la zona donde los dos frentes se encuentran y detrás de ella, y su magnitud está controlada por $\sigma$.
+
+\paragraph{Escenario 2: barrera de inmunidad.} Es el escenario más importante y el que hay que leer con más cuidado, porque el resultado es contraintuitivo. La intención original era construir un cortafuegos. Con $c^\ast=\lfloor C/2\rfloor+1$ la columna central,
+\begin{equation}\label{eq:ci-barrera}
+\begin{aligned}
+\text{columna }1:&\quad I_{l1}(0)=0{,}1,\quad S_l(0)=0{,}9 &&\text{(foco)},\\
+\text{columna }c^\ast:&\quad Z_{l1}(0)=1,\quad S_l(0)=0 &&\text{(pared de recuperados del serotipo 1)},\\
+\text{resto:}&\quad S_l(0)=1,
+\end{aligned}
+\end{equation}
+y las demás variables en cero. Solo se siembra el serotipo 1. La pregunta es si una pared de individuos inmunes al serotipo circulante bloquea la propagación. La respuesta del modelo tiene dos partes.
+
+\emph{La pared es una barrera para los hospedadores, no para el vector.} Los humanos de la columna $c^\ast$ son inmunes al serotipo 1 (con $c=1$, de forma absoluta: $\sigma_{11}=0$) y en efecto casi no se infectan. Pero la red \eqref{eq:red} acopla a los mosquitos de la pared con los humanos de las columnas vecinas: los humanos de la columna $c^\ast-1$ infectan mosquitos de $c^\ast$ (término $\delta_{lim}$ con $A_{lm}=1$), y esos mosquitos infectan humanos de $c^\ast+1$ (término $\lambda_{lim}$). El frente atraviesa la pared en dos saltos, a orden $\kappa^2$, sin necesitar a sus humanos. En una simulación con $R=5$, $C=9$ y los parámetros por defecto, el frente llega a la mitad derecha de la grilla a los $\approx 19$ días con la pared y a los $\approx 16{,}5$ sin ella, con picos comparables; los humanos de la pared se mantienen por debajo de $10^{-3}$. La pared retrasa, no bloquea. Además, tal como está definido, este escenario no ejercita el efecto cruzado: como solo circula el serotipo 1, el resultado con $c=2$ es idéntico al de $c=1$ para cualquier valor de $\sigma$.
+
+\emph{Bajo enhancement, la inmunidad monoserotípica es un canal preferencial.} La segunda parte se lee directamente de \eqref{eq:sistema}. Un parche virgen se infecta con el serotipo $2$ a tasa $S_l\sum_m\lambda_{l2m}V_{m2}$ con $S_l\approx 1$; un parche de la pared lo hace a tasa $\sigma_{12}Z_{l1}\sum_m\lambda_{l2m}V_{m2}$ con $Z_{l1}=1$. Su susceptibilidad efectiva al serotipo $2$ es $\sigma_{12}$ frente a $1$: con $\sigma_{12}<1$ la pared está parcialmente protegida, con $\sigma_{12}>1$ es \emph{más} susceptible que un parche virgen, y además no compite por susceptibles con el serotipo $1$. Para observarlo hay que hacer circular un segundo serotipo. En la variante en que la columna $1$ se siembra con ambos serotipos ($I_{l1}(0)=I_{l2}(0)=0{,}1$), misma grilla $5\times9$: con $\sigma=1{,}5$ (el valor por defecto) la pared concentra infecciones secundarias (pico de infectados en la pared $\approx 0{,}53$, todos secundarios) y el serotipo $2$ alcanza a la derecha de la pared un pico $\approx 0{,}46$, frente a $\approx 0{,}33$ en la misma grilla \emph{sin} pared; con $\sigma=0{,}5$ los valores son $\approx 0{,}34$ en la pared y $\approx 0{,}40$ a la derecha, frente a $\approx 0{,}27$ sin pared. Es decir: la pared de recuperados es, para el serotipo $2$, un reservorio de hospedadores que le llega intacto; con protección cruzada parcial ese reservorio está atenuado, con \emph{enhancement} está amplificado, y en ningún caso frena al serotipo que no es el suyo.
+
+La conclusión es directa: \textbf{en un modelo multicepa con \emph{enhancement}, la inmunidad monoserotípica no constituye una barrera espacial}; una franja de recuperados de un serotipo es, para los demás, una franja de susceptibles reforzados. Esto tiene lectura epidemiológica inmediata y es lo que hace que valga la pena la generalización espacial del modelo de un solo parche: el efecto no es visible sin estructura espacial. Esta variante con dos serotipos sembrados no está incluida en la implementación actual (que siembra solo el serotipo 1) y se propone como su corrección.
+
+\paragraph{Escenario 3: siembra estocástica.} Múltiples focos aleatorios. Se realizan $n_f=\max(1,\lfloor 0{,}1\,n\rfloor)$ sorteos independientes de un parche $l$ y un serotipo $i$, ambos uniformes; en cada sorteo, si $S_l>\varepsilon$ se hace $I_{li}\leftarrow I_{li}+\varepsilon$ y $S_l\leftarrow S_l-\varepsilon$, con $\varepsilon=0{,}01$ (un mismo parche puede ser sorteado más de una vez). La pregunta es de robustez numérica y de sensibilidad a la condición inicial: un brote desordenado con varias cepas, sin ninguna simetría que lo organice. La semilla del generador está fijada ($42$) para que la corrida sea reproducible; el caso $n=9$, $c=2$ de este escenario es el que fija el test de regresión T10.
+
+\paragraph{Parámetros por defecto.} La tabla~\ref{tab:parametros} reúne los valores que usa la implementación si no se indica lo contrario. Con ellos, el número reproductivo básico del caso mononodal con un serotipo, $\mathcal R_0=\sqrt{\beta_h\beta_v/(\nu(\gamma+\mu))}$, vale $\mathcal R_0\approx 4{,}9$: el régimen es fuertemente supercrítico (el test T8 verifica el umbral y la tasa de crecimiento inicial con parámetros elegidos aparte, a ambos lados de $\mathcal R_0=1$).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llll}
+\hline
+Símbolo & Valor & Unidad & Significado \\
+\hline
+$\mu$ & $1/(70\cdot 365)\approx 3{,}9\times10^{-5}$ & día$^{-1}$ & natalidad y mortalidad humana \\
+$\gamma$ & $1/7$ & día$^{-1}$ & recuperación humana \\
+$\nu$ & $1/14$ & día$^{-1}$ & mortalidad del mosquito \\
+$\beta_h$ & $0{,}5$ & día$^{-1}$ & transmisión mosquito $\to$ humano (diagonal de $\lambda$) \\
+$\beta_v$ & $0{,}5$ & día$^{-1}$ & transmisión humano $\to$ mosquito (diagonal de $\delta$) \\
+$\kappa$ & $0{,}05$ & --- & acoplamiento con primeros vecinos (\texttt{coupling}) \\
+$\sigma$ & $1{,}5$ & --- & efecto cruzado, $i\neq j$; \textbf{$\sigma>1$ es régimen ADE} \\
+$N_l$ & $1$ & --- & población normalizada de cada parche \\
+$c$ & $2$ & --- & serotipos en la implementación ($4$ en la exposición) \\
+$\varepsilon$ & $0{,}01$ / $0{,}1$ & --- & tamaño de la siembra (escenarios 1 y 3 / escenario 2) \\
+\hline
+\end{tabular}
+\caption{Parámetros por defecto de la implementación. El valor $\sigma=1{,}5$ significa que, por defecto, toda infección primaria \emph{aumenta} la susceptibilidad a los demás serotipos; cualquier resultado con estos parámetros debe leerse en régimen de \emph{enhancement}.}
+\label{tab:parametros}
+\end{table}
+
 \section{Equilibrio Endémico}
 Queremos saber bajo que condiciones existe solución al sistema 
 \begin{align*}
