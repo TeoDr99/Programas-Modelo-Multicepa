@@ -31,12 +31,12 @@ marginparwidth=2cm, marginparsep=0.4cm, margin=2.5cm]{geometry}
 \begin{document}
 	\title{Estudio de modelos matemáticos estructurados para la transmisión del dengue}
 	\date{}
-	\author{Teo Demergasso}
+	\author{Teo Demergasso\thanks{Beca de Ayudantía de Investigación UNRC-ODS, Departamento de Matemática, Universidad Nacional de Río Cuarto. Trabajo realizado dentro del proyecto marco \emph{Problemas teóricos en ecuaciones diferenciales y cálculo de variaciones}, dirigido por Fernando Mazzone.}}
 
 \maketitle
 
 \section{Modelo Matemático}
-El modelo presentado es una generalización del modelo planteado por de Araújo et al.\ (2023) en \emph{Applying a multi-strain dengue model to epidemics data} para un número $n$ de parches (o nodos) espaciales, con el objetivo de examinar el efecto del movimiento del hospedador en la dinámica de transmisión del dengue. Consideramos $c$ serotipos circulantes; siguiendo el trabajo original fijamos $c=4$ en la exposición, aunque la implementación numérica que acompaña a este documento (sección~\ref{sec:codigo}) admite $c$ arbitrario y usa $c=2$ por defecto. Modelamos las infecciones primarias y secundarias por dengue. Para este fin, la población humana del parche $l$, $l=1,\dots,n$, se divide en: susceptibles a los cuatro serotipos, $\bar S_l$; infectados primariamente por el serotipo $i$, $\bar I_{li}$, $i=1,\dots,4$; recuperados de la infección primaria por el serotipo $i$ pero susceptibles a los serotipos $j\neq i$, $\bar Z_{li}$; infectados primariamente por el serotipo $i$ y secundariamente por el serotipo $j\neq i$, $\bar Y_{lij}$\footnote{Convención de índices de $Y$: el \textbf{primer} índice de serotipo es la infección \textbf{primaria} y el \textbf{segundo} la \textbf{secundaria}. Es la convención de la implementación numérica. El trabajo de de Araújo et al.\ usa la opuesta ($Y_{ki}$ = primaria por $k$, secundaria por $i$, sumando sobre el primer índice); un lector que compare ambos textos debe tenerlo presente.}; y recuperados de ambas infecciones, $\bar Z_l$, que no depende del serotipo porque un individuo con dos infecciones es inmune a todos los serotipos considerados. La población de mosquitos del parche $l$ se divide en susceptibles, $\bar V_{sl}$, e infectados por el serotipo $i$, $\bar V_{li}$, $i=1,\dots,4$ (suponemos que, debido a su corta vida, los mosquitos solo pueden infectarse con dengue una vez). El total de humanos del parche $l$ capaces de transmitir el serotipo $i$ es $\bar I_{li}+\sum_{k\neq i}\bar Y_{lki}$: los infectados primarios por $i$ más los infectados secundarios por $i$, cualquiera sea su serotipo primario $k$.
+El modelo presentado es una generalización del modelo planteado por de Araújo et al.~\cite{deAraujo2023} para un número $n$ de parches (o nodos) espaciales, con el objetivo de examinar el efecto del movimiento del hospedador en la dinámica de transmisión del dengue. Consideramos $c$ serotipos circulantes; siguiendo el trabajo original fijamos $c=4$ en la exposición, aunque la implementación numérica que acompaña a este documento (sección~\ref{sec:codigo}) admite $c$ arbitrario y usa $c=2$ por defecto. Modelamos las infecciones primarias y secundarias por dengue. Para este fin, la población humana del parche $l$, $l=1,\dots,n$, se divide en: susceptibles a los cuatro serotipos, $\bar S_l$; infectados primariamente por el serotipo $i$, $\bar I_{li}$, $i=1,\dots,4$; recuperados de la infección primaria por el serotipo $i$ pero susceptibles a los serotipos $j\neq i$, $\bar Z_{li}$; infectados primariamente por el serotipo $i$ y secundariamente por el serotipo $j\neq i$, $\bar Y_{lij}$\footnote{Convención de índices de $Y$: el \textbf{primer} índice de serotipo es la infección \textbf{primaria} y el \textbf{segundo} la \textbf{secundaria}. Es la convención de la implementación numérica. El trabajo de de Araújo et al.\ usa la opuesta ($Y_{ki}$ = primaria por $k$, secundaria por $i$, sumando sobre el primer índice); un lector que compare ambos textos debe tenerlo presente.}; y recuperados de ambas infecciones, $\bar Z_l$, que no depende del serotipo porque un individuo con dos infecciones es inmune a todos los serotipos considerados. La población de mosquitos del parche $l$ se divide en susceptibles, $\bar V_{sl}$, e infectados por el serotipo $i$, $\bar V_{li}$, $i=1,\dots,4$ (suponemos que, debido a su corta vida, los mosquitos solo pueden infectarse con dengue una vez). El total de humanos del parche $l$ capaces de transmitir el serotipo $i$ es $\bar I_{li}+\sum_{k\neq i}\bar Y_{lki}$: los infectados primarios por $i$ más los infectados secundarios por $i$, cualquiera sea su serotipo primario $k$.
 
 Un individuo susceptible del parche $l$ se infecta con el serotipo $i$ al ser picado por un mosquito infectado del parche $m$ a una tasa $\lambda_{lim}\bar V_{mi}$, con $i=1,\dots,4$ y $l,m=1,\dots,n$. Los individuos que han sido infectados con el serotipo $i$ pueden tener una segunda infección con un serotipo diferente $j$ a una tasa $\sigma_{ij}\lambda_{ljm}\bar V_{mj}$, con $i,j=1,\dots,4$, $i\neq j$. El factor $\sigma_{ij}$ es el efecto cruzado de la infección primaria por $i$ sobre la susceptibilidad al serotipo $j$; depende solo del par de serotipos y no del parche. Un individuo infectado por un serotipo se vuelve permanentemente inmune a este serotipo, pero susceptible a los demás, lo que lleva a casos secundarios. Si $\sigma_{ij}=1$, la infección por el serotipo $i$ no altera la susceptibilidad a la infección por el serotipo $j$. Si $0\leq\sigma_{ij}<1$, el serotipo $i$ confiere inmunidad parcial o total al serotipo $j$. Si $\sigma_{ij}>1$, la infección por el serotipo $i$ aumenta la susceptibilidad al serotipo $j$ (\emph{antibody-dependent enhancement}, ADE). Por lo tanto, en nuestro modelo $\sigma_{ij}$ puede asumir valores menores o mayores que uno, ya que representa el resultado neto del efecto cruzado sobre la intensidad de la tasa de infección. Adoptamos además la convención
 \begin{equation}\label{eq:sigma-diag}
@@ -226,6 +226,8 @@ Algunas convenciones del código que conviene tener presentes al leer las ecuaci
 \end{itemize}
 
 \section{Equilibrio Endémico}
+\emph{Nota sobre el estado de esta sección.} El argumento de grado topológico que sigue, y en particular el Teorema~\ref{thm:endemic_existence} y su demostración, están en revisión; sus conclusiones deben leerse como provisorias hasta que se completen las hipótesis y se verifique la cuenta de índices. La formulación del sistema estacionario, en cambio, es la misma de \eqref{eq:sistema} con los miembros izquierdos anulados.
+
 Queremos saber bajo que condiciones existe solución al sistema 
 \begin{align*}
     0 & =\mu-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
@@ -429,5 +431,18 @@ x^\ast \in \Omega.
 Este punto singular corresponde a un equilibrio endémico.
 
 \end{proof}
+
+\begin{thebibliography}{9}
+\bibitem{deAraujo2023}
+R.~G.~S. de Araújo, D.~C.~P. Jorge, R.~C. Dorn, G. Cruz-Pacheco, M.~L.~M. Esteva, S.~T.~R. Pinho.
+\newblock Applying a multi-strain dengue model to epidemics data.
+\newblock \emph{Mathematical Biosciences}, 360:109013, 2023.
+\newblock \href{https://doi.org/10.1016/j.mbs.2023.109013}{doi:10.1016/j.mbs.2023.109013}.
+
+\bibitem{Krasnoselskii1984}
+M.~A. Krasnosel'skii, P.~P. Zabreiko.
+\newblock \emph{Geometrical Methods of Nonlinear Analysis}.
+\newblock Grundlehren der mathematischen Wissenschaften 263, Springer, Berlin, 1984.
+\end{thebibliography}
 
 \end{document}
