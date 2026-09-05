@@ -44,27 +44,49 @@ Un individuo susceptible del parche $l$ se infecta con el serotipo $i$ al ser pi
 \end{equation}
 que expresa que no hay reinfección por el mismo serotipo; con ella, las sumas sobre el segundo índice de $\sigma$ pueden escribirse sobre todos los serotipos sin la restricción $j\neq i$, y $Y_{lii}\equiv 0$. (Es exactamente lo que hace la implementación al multiplicar $\sigma$ por una máscara con ceros en la diagonal.)
 
-Debido a la corta vida de los mosquitos, no pueden reinfectarse con otro serotipo. Además, aunque los humanos pueden contraer dengue hemorrágico (la forma más grave de la enfermedad), la mortalidad por esta enfermedad es baja, por lo que podemos ignorarla. Asimismo, asumimos las mismas tasas de mortalidad y recuperación humanas para todos los serotipos, ya que no encontramos evidencia que sugiera alguna diferencia. Según estos supuestos, podemos suponer que las poblaciones humanas y de mosquitos, denotadas por $N_h$ y $N_m$, respectivamente, son constantes, con tasas de mortalidad natural dadas por $\mu$ y $\nu$, respectivamente. Para simplificar el modelo, tomamos proporciones en ambas poblaciones, que vienen dadas por:
-\comment{No entiendo estas igualdades. Sobra una sumatoria en los primeros miembros?}
+Debido a la corta vida de los mosquitos, no pueden reinfectarse con otro serotipo. Además, aunque los humanos pueden contraer dengue hemorrágico (la forma más grave de la enfermedad), la mortalidad por esta enfermedad es baja, por lo que podemos ignorarla. Asimismo, asumimos las mismas tasas de mortalidad y recuperación humanas para todos los serotipos, ya que no encontramos evidencia que sugiera alguna diferencia. Según estos supuestos, podemos suponer que las poblaciones humana y de mosquitos de cada parche, denotadas por $N_{hl}$ y $N_{vl}$ respectivamente, son constantes, con tasas de mortalidad natural dadas por $\mu$ y $\nu$.
 
-$$
-\begin{aligned}
-& \sum_{l=1}S_{li} = \frac{\sum_{l=1}\overline{S}_{li}}{\sum_{l=1}N_{hl}}, \quad \sum_{l=1}I_{li}=\frac{\sum_{l=1}\bar{I}_{li}}{\sum_{l=1}N_{hl}}, \quad \sum_{l=1}Z_{li} = \frac{\sum_{l=1}\bar{Z}_{li}}{\sum_{l=1}N_{hl}}, \quad \sum_{l=1}Y_{lik} = \frac{\sum_{l=1}\bar{Y}_{lik}}{\sum_{l=1}N_{lh}}, \\
-& \sum_{l=1}Z_{li} = 1-\sum_{l=1}S_{l}-\sum_{l=1}\sum_{i=1}^4\left(I_{li}+Z_i+\sum_{k=1, k \neq i}^4 Y_{lik}\right) \quad i, k = 1, \ldots, 4,
-\end{aligned}
-$$
+\subsection{Adimensionalización}\label{sec:adimensional}
 
-y
+Para simplificar el modelo tomamos proporciones en ambas poblaciones, \emph{normalizando por parche}:
+\begin{equation}\label{eq:proporciones}
+S_l=\frac{\bar S_l}{N_{hl}},\quad
+I_{li}=\frac{\bar I_{li}}{N_{hl}},\quad
+Z_{li}=\frac{\bar Z_{li}}{N_{hl}},\quad
+Y_{lij}=\frac{\bar Y_{lij}}{N_{hl}},\quad
+Z_{l}=\frac{\bar Z_{l}}{N_{hl}},\quad
+V_{li}=\frac{\bar V_{li}}{N_{vl}},\quad
+V_{sl}=\frac{\bar V_{sl}}{N_{vl}},
+\end{equation}
+para $l=1,\dots,n$ e $i,j=1,\dots,4$. Como cada parche tiene población constante, las proporciones satisfacen
+\begin{equation}\label{eq:cierre}
+Z_l = 1 - S_l - \sum_{i=1}^4\Big(I_{li}+Z_{li}+\sum_{j\neq i} Y_{lij}\Big),
+\qquad
+V_{sl} = 1-\sum_{i=1}^4 V_{li},
+\end{equation}
+de modo que $Z_l$ y $V_{sl}$ no necesitan ecuación propia: quedan determinadas por las demás variables del mismo parche.
 
-$$
-\sum_{l=1}V_1 = \frac{\sum_{l=1}\bar{V}_{l1}}{\sum_{l=1}N_{vl}}, \quad \sum_{l=1}V_{l2} = \frac{\sum_{l=1}\bar{V}_{l2}}{\sum_{l=1}N_{vl}}, \quad \sum_{l=1}V_{l3}=\frac{\sum_{l=1}\bar{V}_3}{\sum_{ l=1}N_{vl}}, \quad \sum_{l=1}V_{l4}=\frac{\sum_{l=1}\bar{V}_{4l}}{\sum_{l=1}N_{vl}} \quad \sum_{l=1}V_{sl}=1-\sum_{l=1}\sum_{i=1}^4 V_{li}
-$$
+Al normalizar por parche aparece una consecuencia que conviene explicitar. Escribamos el contagio humano en números absolutos con una tasa de contacto por mosquito: un mosquito infectado del parche $m$ infecta humanos del parche $l$ a una tasa $\tilde\lambda_{lim}$ por mosquito y por fracción de humanos susceptibles, es decir,
+\[
+\frac{d\bar S_l}{dt}=\mu N_{hl}-\bar S_l\sum_{m=1}^n\sum_{i=1}^4\tilde\lambda_{lim}\,\frac{\bar V_{mi}}{N_{hl}}-\mu\bar S_l .
+\]
+Dividiendo por $N_{hl}$ y usando \eqref{eq:proporciones},
+\[
+\frac{dS_l}{dt}=\mu-S_l\sum_{m=1}^n\sum_{i=1}^4\tilde\lambda_{lim}\,\frac{N_{vm}}{N_{hl}}\,V_{mi}-\mu S_l ,
+\]
+así que en los términos de contagio cruzado entre parches aparecen las \emph{razones de tamaños poblacionales} $N_{vm}/N_{hl}$: un parche con muchos mosquitos por humano recibe una fuerza de infección proporcionalmente mayor. Definimos entonces
+\begin{equation}\label{eq:lambda-razon}
+\lambda_{lim}=\tilde\lambda_{lim}\,\frac{N_{vm}}{N_{hl}},
+\end{equation}
+que es el coeficiente que aparece en el sistema en proporciones. Del lado del mosquito, la infección de un mosquito del parche $l$ depende de la \emph{fracción} de humanos infecciosos del parche $m$, $(\bar I_{mi}+\sum_{k\neq i}\bar Y_{mki})/N_{hm}=I_{mi}+\sum_{k\neq i}Y_{mki}$, de modo que al dividir por $N_{vl}$ no aparece ninguna razón poblacional: $\delta_{lim}$ es directamente la tasa por fracción de humanos infecciosos. Por la misma razón, con $S_l$ proporción el término de natalidad en $\dot S_l$ es $\mu$ y no $\mu N_{hl}$.
+
+En la implementación numérica que acompaña a este documento todas las poblaciones se toman iguales, $N_{hl}=N_{vl}=1$ para todo $l$ (el código las lleva explícitamente en un vector \texttt{N\_pop} de unos), por lo que las razones \eqref{eq:lambda-razon} valen $1$, $\lambda_{lim}=\tilde\lambda_{lim}$, y el término de natalidad se escribe $\mu N_l$ con $N_l=1$. Por eso esas razones no aparecen en el código; si se quisieran parches con poblaciones distintas habría que introducirlas en $\lambda$.
 
 De acuerdo con las suposiciones anteriores, obtenemos el siguiente sistema de ecuaciones diferenciales ordinarias con 25 ecuaciones por cada nodo ($1+4+4+12+4$; las $Y_{lii}$ son idénticamente nulas), donde $\gamma$ es la tasa de recuperación humana, común a todos los serotipos y parches, $\mu$ la tasa de natalidad y mortalidad humana y $\nu$ la mortalidad del mosquito:
 
 \begin{equation}\label{eq:sistema}
 \begin{aligned}
-    \frac{d S_l}{d t} & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
+    \frac{d S_l}{d t} & =\mu-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
     \frac{d I_{li}}{d t} & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma+\mu\right) I_{li}, \\
     \frac{d Z_{li}}{d t} & =\gamma I_{li}-Z_{li}\sum_{j=1}^4\sigma_{ij}\sum_{m=1}^n  \lambda_{ljm}V_{mj}-\mu Z_{li}, \\
     \frac{d Y_{lij}}{d t} & =\sigma_{ij}Z_{li}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma\right) Y_{lij}, \\
@@ -76,7 +98,7 @@ para $l=1,\dots,n$ e $i,j=1,\dots,4$. En la ecuación de $Z_{li}$ la suma sobre 
 \section{Equilibrio Endémico}
 Queremos saber bajo que condiciones existe solución al sistema 
 \begin{align*}
-    0 & =\mu N_l-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
+    0 & =\mu-S_l\sum_{m=1}^n\sum_{i=1}^4 \lambda_{lim} V_{mi} -\mu S_l, \\
     0 & =S_l\sum_{m=1}^n\lambda_{lim} V_{mi} -\left(\gamma+\mu\right) I_{li}, \\
     0 & =\gamma I_{li}-Z_{li}\sum_{j=1}^4\sigma_{ij}\sum_{m=1}^n  \lambda_{ljm}V_{mj}-\mu Z_{li}, \\
     0 & =\sigma_{ij}Z_{li}\sum_{m=1}^n\lambda_{ljm}V_{mj}-\left(\mu+\gamma\right) Y_{lij}, \\
@@ -85,7 +107,7 @@ Queremos saber bajo que condiciones existe solución al sistema
 con $l=1,\dots,n$ e $i,j=1,\dots,4$, es decir, el sistema \eqref{eq:sistema} con los miembros izquierdos anulados.
 Para simplificar el problema, consideremos primero el caso en el que hay un solo nodo ($n=1$; se omite el índice de parche):
 \begin{align*}
-    0 & =\mu N-S\sum_{i=1}^4 \lambda_{i} V_{i} -\mu S, \\
+    0 & =\mu-S\sum_{i=1}^4 \lambda_{i} V_{i} -\mu S, \\
     0 & =S\lambda_{i} V_{i} -\left(\gamma+\mu\right) I_{i}, \\
     0 & =\gamma I_{i}-Z_{i}\sum_{j=1}^4\sigma_{ij}  \lambda_{j}V_{j}-\mu Z_{i}, \\
     0 & =\sigma_{ij}Z_{i}\lambda_{j}V_{j}-\left(\mu+\gamma\right) Y_{ij}, \\
