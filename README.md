@@ -5,8 +5,7 @@
 single-patch, four-serotype model of de Araújo et al. (2023) to an arbitrary
 network of patches. The implementation is validated by a 39-test suite that checks
 the model's algebraic conservation identities, invariants, symmetries, and a known
-epidemiological threshold directly against the equations — not just against a
-frozen regression snapshot — plus a mutation-testing pass that confirms the suite
+epidemiological threshold directly against the equations plus a mutation-testing pass that confirms the suite
 actually detects broken indices and signs.
 
 ---
@@ -55,7 +54,7 @@ pip install -r requirements.txt
 python run.py --nodos 100 --cepas 2 --escenario 3
 ```
 
-Ese comando corre en menos de 2 segundos (medido) y abre una ventana con la
+Ese comando corre en menos de 2 segundos y abre una ventana con la
 animación. Ver todas las opciones con `python run.py --help`, en particular
 `--escenario` (incluye `0`, estado libre de enfermedad), `--salida` para guardar
 un GIF, y `--sparse` para la ruta de acoplamiento disperso (sección 6).
@@ -87,24 +86,18 @@ la suite, la mayoría en menos de 5 segundos. La mutación no detectada (inverti
 orden de índices al construir la red de vecinos) resultó ser un **mutante
 equivalente**: la grilla de vecinos no es dirigida, así que esa mutación produce
 exactamente la misma matriz. La convención de índices que sí importa (la del
-`einsum` del modelo, no la de la construcción de la red) está cubierta por un test
-con una red *deliberadamente* dirigida, construida a mano.
-
-La Sesión B de refactor agregó dos tests más (no parte del contrato original, ver
-sección 6) que comparan la ruta de acoplamiento disperso contra la densa a `1e-10`.
+`einsum` del modelo) está cubierta por un test
+con una red dirigida, construida a mano.
 
 ## 6. Rendimiento: acoplamiento denso vs. disperso
 
 La construcción de la red (`build_network`) arma matrices `lam`/`delta` de forma
-`(n, c, n)` densas, aunque cada nodo solo tiene ~5 vecinos no nulos. Para `n`
-grande eso es memoria y cómputo desperdiciados: cada evaluación del lado derecho
-cuesta `O(n²·c)` en vez de `O(n·c)`.
+`(n, c, n)` densas, aunque cada nodo solo tiene ~5 vecinos no nulos.
 
 `--sparse` activa una ruta alternativa (`dengue/sparse.py`) que representa el
 acoplamiento con `scipy.sparse.csr_matrix` en vez de arrays densos. Es **opt-in**,
 no reemplaza a la ruta densa: el golden de regresión y los demás tests siguen
-usando exclusivamente la ruta densa, y ambas coinciden a `1e-10` (no bit a bit —
-sumar en otro orden cambia los últimos bits).
+usando exclusivamente la ruta densa, y ambas coinciden a `1e-10`.
 
 Benchmark medido (`c = 2`, tiempo por evaluación del lado derecho, no integración
 completa):
@@ -114,34 +107,31 @@ completa):
 | 400 | 5.1 MB → 0.05 MB | 1.509 ms → 0.340 ms | 4.4× |
 | 2500 | 200 MB → 0.32 MB | 30.6 ms → 0.629 ms | 48.8× |
 
-El speedup crece con `n` porque la ruta densa es `O(n²)` y la dispersa `O(n)`; a
-`n = 400` el beneficio ya es notorio y a `n = 2500` es determinante.
+El speedup crece con `n` porque la ruta densa es `O(n²·c)` y la dispersa `O(n·c)`.
 
 ## 7. Limitaciones conocidas
 
 - **Efecto de borde sin normalizar.** La fuerza entrante total es
   `β·(1 + k·coupling)` con `k = 4` en el interior de la grilla, `3` en los bordes y
   `2` en las esquinas. El frente de onda se deforma al llegar al borde por esta
-  razón artificial, no por una propiedad epidemiológica.
+  razón.
 - **`σ = 1.5` por defecto: régimen de *enhancement* (ADE).** La infección primaria
   facilita la secundaria en vez de proteger contra ella. Esto es lo que hace que el
   escenario "Cortafuegos" no aísle con `c ≥ 2`: una pared de inmunidad
   monoserotípica vuelve a esos nodos *más* susceptibles al resto de las cepas, no
-  menos. No es un bug — es un resultado del modelo bajo ADE, documentado para el
-  desarrollo teórico (TEX) del proyecto.
+  menos. Es un resultado del modelo bajo ADE, documentado para el
+  desarrollo teórico del proyecto.
 - **Sin forzado estacional.** Los parámetros de transmisión son constantes en el
   tiempo; el modelo no captura la estacionalidad del vector.
 - **No calibrado contra datos reales.** Los parámetros por defecto son los del
   paper de referencia, no un ajuste a una serie epidemiológica concreta.
 - **Presupuesto de evaluaciones en los tests.** El helper `integrar` de la suite
-  corta la integración después de 200 000 evaluaciones del lado derecho (~50× lo
-  que usa una corrida sana) para que un modelo roto falle rápido en vez de colgar
-  el integrador. Es una salvaguarda de los tests, no un límite del modelo en sí.
-- **Acoplamiento `lam`/`delta` formalmente independientes**, aunque describen el
+  corta la integración después de 200 000 evaluaciones del lado derecho.
+- **Acoplamiento `lam`/`delta` independientes**, aunque describen el
   mismo patrón de encuentro humano-mosquito — genera parámetros no identificables
   a partir de datos.
 
-## 8. Símbolos: TEX ↔ Python ↔ forma
+## 8. Símbolos:
 
 Convención de índices: `l, m` recorren parches (`0..n-1`), `i, j` recorren
 serotipos (`0..c-1`). `Y[l,i,j]`: infección primaria por `i`, secundaria por `j`.
@@ -167,7 +157,6 @@ dengue/
   sparse.py     ruta de acoplamiento disperso opt-in (--sparse)
 run.py          punto de entrada de línea de comandos
 tests/          suite de verificación (ver tests/README.md)
-HALLAZGOS.md    decisiones y hallazgos de cada sesión (no versionado)
 ```
 
 ## 10. Licencia
