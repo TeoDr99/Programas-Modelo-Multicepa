@@ -3,7 +3,7 @@
 **Abstract.** A spatially-explicit compartmental model for dengue transmission with
 `c` co-circulating serotypes and `n` coupled spatial patches, generalizing the
 single-patch, four-serotype model of de Araújo et al. (2023) to an arbitrary
-network of patches. The implementation is validated by a 39-test suite that checks
+network of patches. The implementation is validated by a 48-test suite that checks
 the model's algebraic conservation identities, invariants, symmetries, and a known
 epidemiological threshold directly against the equations plus a mutation-testing pass that confirms the suite
 actually detects broken indices and signs.
@@ -23,6 +23,12 @@ generalización del modelo de un solo parche y cuatro serotipos de:
 
 Ese paper tiene 25 EDOs y un solo parche; acá hay 25 EDOs *por parche*, acopladas
 por una red espacial de primeros vecinos.
+
+La formulación matemática completa (adimensionalización, identidad de conservación,
+condiciones iniciales como diseño de experimentos, y la correspondencia símbolo ↔
+variable) está en [`docs/Estudio.pdf`](docs/Estudio.pdf). **Su sección de equilibrio
+endémico está en revisión: el argumento de grado topológico y sus conclusiones son
+provisorios**, a diferencia del resto del documento.
 
 ## 2. Contexto
 
@@ -56,9 +62,10 @@ python run.py --nodos 100 --cepas 2 --escenario 3
 
 Ese comando corre en menos de 2 segundos y abre una ventana con la
 animación. Ver todas las opciones con `python run.py --help`, en particular
-`--escenario` (incluye `0`, estado libre de enfermedad), `--sigma` para el efecto
-cruzado entre serotipos, `--salida` para guardar un GIF, y `--sparse` para la ruta
-de acoplamiento disperso (sección 6).
+`--escenario` (incluye `0`, estado libre de enfermedad, y `4`/`5`, el escenario de
+reservorio y su control), `--sigma` para el efecto cruzado entre serotipos,
+`--salida` para guardar un GIF, y `--sparse` para la ruta de acoplamiento disperso
+(sección 7).
 
 Escenarios disponibles (`--escenario`):
 
@@ -68,7 +75,7 @@ Escenarios disponibles (`--escenario`):
 | 1 | Choque de ondas | Dos serotipos en esquinas opuestas: ¿se preserva la simetría? (T9) |
 | 2 | Cortafuegos | Pared de recuperados del serotipo 1, solo ese serotipo sembrado. La pared retrasa unos días pero no aísla: el frente cruza por los mosquitos de la pared. |
 | 3 | Siembra estocástica | Focos aleatorios con semilla fija (default; caso del golden T10). |
-| 4 | Reservorio | Misma pared que el 2 con **ambos** serotipos sembrados: la pared amplifica al serotipo 2 (sección 7). Requiere `--cepas >= 2`. |
+| 4 | Reservorio | Misma pared que el 2 con **ambos** serotipos sembrados: la pared amplifica al serotipo 2 (sección 5). Requiere `--cepas >= 2`. |
 | 5 | Control del reservorio | Idéntico al 4 sin la pared. Requiere `--cepas >= 2`. |
 
 El resultado central del documento (escenarios 4 vs 5) se reproduce con un comando:
@@ -77,7 +84,48 @@ El resultado central del documento (escenarios 4 vs 5) se reproduce con un coman
 python scripts/reproducir_reservorio.py
 ```
 
-## 5. Verificación
+## 5. Un resultado del modelo: las barreras de inmunidad monoserotípica
+
+La generalización espacial produce un resultado que el modelo de un solo parche no
+puede exhibir. El escenario 2 ("Cortafuegos") planta una columna de individuos
+recuperados del serotipo 1 en el medio de la grilla, con la intención de bloquear el
+avance de la epidemia. No la bloquea, por dos razones distintas.
+
+**La pared frena a los hospedadores, no al vector.** Los humanos de la columna son
+inmunes al serotipo circulante y casi no se infectan, pero los mosquitos de esa misma
+columna sí: se infectan de los humanos de la columna anterior y contagian a los de la
+siguiente. El frente la atraviesa en dos saltos, a orden `κ²`. En una grilla 5×9 con
+los parámetros por defecto llega a la mitad derecha a los ≈19 días con pared y a los
+≈16,5 sin ella. Retrasa, no bloquea.
+
+**Para el otro serotipo, la pared es un reservorio.** Los recuperados del serotipo 1
+quedan fuera de la competencia por susceptibles y le llegan intactos al serotipo 2.
+Sembrando ambos serotipos (escenario 4, con el 5 como control sin pared):
+
+| `σ` | Pico del serotipo 2 a la derecha, con pared | Sin pared |
+|---|---|---|
+| 1,5 (*enhancement*) | 0,46 | 0,33 |
+| 0,5 (protección cruzada parcial) | 0,40 | 0,27 |
+
+El efecto aparece **en los dos regímenes**: incluso con protección cruzada parcial la
+pared amplifica al serotipo que no es el suyo. `σ` modula la amplificación, no la
+causa.
+
+![Escenario 4: la pared de recuperados (columna central) se infecta con el serotipo 2 y lo amplifica](docs/reservorio.gif)
+
+*Escenario 4 en la grilla 5×9 (`python run.py --nodos 45 --cepas 2 --escenario 4
+--t-final 60 --salida docs/reservorio.gif`, diezmado a la mitad de los cuadros para
+el tamaño del archivo). Compárese con el escenario 2, donde la pared queda oscura.*
+
+Los cuatro valores se regeneran con `python scripts/reproducir_reservorio.py`, que
+fija las condiciones exactas de la corrida (grilla 5×9, `rtol=1e-8`, `atol=1e-10`,
+801 puntos de muestreo) y avisa si alguno deja de coincidir. La desigualdad "pico con
+pared > pico sin pared" para ambos valores de `σ` está cubierta por un test
+(`tests/test_reservorio.py`), de modo que la afirmación es falsable.
+
+El desarrollo completo está en [`docs/Estudio.pdf`](docs/Estudio.pdf), sección 1.3.
+
+## 6. Verificación
 
 El repositorio tiene una suite de 48 tests (`pytest`, corre en unos 6 segundos) que
 funciona como red de seguridad: si alguien rompe un índice, un signo, o un eje de un
@@ -107,7 +155,14 @@ exactamente la misma matriz. La convención de índices que sí importa (la del
 `einsum` del modelo) está cubierta por un test
 con una red dirigida, construida a mano.
 
-## 6. Rendimiento: acoplamiento denso vs. disperso
+Dos archivos de tests no forman parte del contrato original (T1–T10) pero se agregaron
+en sesiones posteriores y tampoco lo modifican: `tests/test_sparse.py` (Sesión B)
+compara la ruta de acoplamiento disperso contra la densa a `1e-10`, y
+`tests/test_reservorio.py` (Sesión D) cubre la estructura de los escenarios 4 y 5, un
+golden propio del escenario 4, y la afirmación central de la sección 5 como test
+falsable.
+
+## 7. Rendimiento: acoplamiento denso vs. disperso
 
 La construcción de la red (`build_network`) arma matrices `lam`/`delta` de forma
 `(n, c, n)` densas, aunque cada nodo solo tiene ~5 vecinos no nulos.
@@ -127,18 +182,17 @@ completa):
 
 El speedup crece con `n` porque la ruta densa es `O(n²·c)` y la dispersa `O(n·c)`.
 
-## 7. Limitaciones conocidas
+## 8. Limitaciones conocidas
 
 - **Efecto de borde sin normalizar.** La fuerza entrante total es
   `β·(1 + k·coupling)` con `k = 4` en el interior de la grilla, `3` en los bordes y
   `2` en las esquinas. El frente de onda se deforma al llegar al borde por esta
   razón.
 - **`σ = 1.5` por defecto: régimen de *enhancement* (ADE).** La infección primaria
-  facilita la secundaria en vez de proteger contra ella. Esto es lo que hace que el
-  escenario "Cortafuegos" no aísle con `c ≥ 2`: una pared de inmunidad
-  monoserotípica vuelve a esos nodos *más* susceptibles al resto de las cepas, no
-  menos. Es un resultado del modelo bajo ADE, documentado para el
-  desarrollo teórico del proyecto.
+  facilita la secundaria en vez de proteger contra ella. El escenario 2
+  ("Cortafuegos") no ejercita este efecto: como solo se siembra un serotipo, su
+  resultado es idéntico para cualquier valor de `σ`. Para observar el efecto
+  cruzado hay que usar los escenarios 4 y 5 (sección 5).
 - **Sin forzado estacional.** Los parámetros de transmisión son constantes en el
   tiempo; el modelo no captura la estacionalidad del vector.
 - **No calibrado contra datos reales.** Los parámetros por defecto son los del
@@ -149,7 +203,7 @@ El speedup crece con `n` porque la ruta densa es `O(n²·c)` y la dispersa `O(n�
   mismo patrón de encuentro humano-mosquito — genera parámetros no identificables
   a partir de datos.
 
-## 8. Símbolos:
+## 9. Símbolos
 
 Convención de índices: `l, m` recorren parches (`0..n-1`), `i, j` recorren
 serotipos (`0..c-1`). `Y[l,i,j]`: infección primaria por `i`, secundaria por `j`.
@@ -165,7 +219,7 @@ serotipos (`0..c-1`). `Y[l,i,j]`: infección primaria por `i`, secundaria por `j
 | $\delta_{lim}$ | `delta` | `(n, c, n)` | Infección de mosquitos de `l` por humanos de `m`, cepa `i` |
 | $\sigma_{ij}$ | `sigma` | `(c, c)` | Efecto cruzado: primaria `i` → secundaria `j` (`> 1` es *enhancement*/ADE) |
 
-## 9. Estructura del repositorio
+## 10. Estructura del repositorio
 
 ```
 dengue/
@@ -178,8 +232,10 @@ scripts/
   reproducir_reservorio.py   regenera la tabla del efecto de reservorio (escenarios 4 vs 5)
 tests/          suite de verificación (ver tests/README.md)
 docs/           Estudio.tex (documento LaTeX), demo.gif, reservorio.gif
+conftest.py     hace que dengue/ y scripts/ sean importables al correr pytest
+pytest.ini      configuración de pytest (testpaths, addopts)
 ```
 
-## 10. Licencia
+## 11. Licencia
 
 MIT, ver [LICENSE](LICENSE).
