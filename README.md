@@ -56,12 +56,30 @@ python run.py --nodos 100 --cepas 2 --escenario 3
 
 Ese comando corre en menos de 2 segundos y abre una ventana con la
 animación. Ver todas las opciones con `python run.py --help`, en particular
-`--escenario` (incluye `0`, estado libre de enfermedad), `--salida` para guardar
-un GIF, y `--sparse` para la ruta de acoplamiento disperso (sección 6).
+`--escenario` (incluye `0`, estado libre de enfermedad), `--sigma` para el efecto
+cruzado entre serotipos, `--salida` para guardar un GIF, y `--sparse` para la ruta
+de acoplamiento disperso (sección 6).
+
+Escenarios disponibles (`--escenario`):
+
+| # | Nombre | Qué pregunta responde |
+|---|---|---|
+| 0 | Estado limpio | Punto de partida sin siembra, para sembrar a mano. |
+| 1 | Choque de ondas | Dos serotipos en esquinas opuestas: ¿se preserva la simetría? (T9) |
+| 2 | Cortafuegos | Pared de recuperados del serotipo 1, solo ese serotipo sembrado. La pared retrasa unos días pero no aísla: el frente cruza por los mosquitos de la pared. |
+| 3 | Siembra estocástica | Focos aleatorios con semilla fija (default; caso del golden T10). |
+| 4 | Reservorio | Misma pared que el 2 con **ambos** serotipos sembrados: la pared amplifica al serotipo 2 (sección 7). Requiere `--cepas >= 2`. |
+| 5 | Control del reservorio | Idéntico al 4 sin la pared. Requiere `--cepas >= 2`. |
+
+El resultado central del documento (escenarios 4 vs 5) se reproduce con un comando:
+
+```bash
+python scripts/reproducir_reservorio.py
+```
 
 ## 5. Verificación
 
-El repositorio tiene una suite de 39 tests (`pytest`, corre en unos 5 segundos) que
+El repositorio tiene una suite de 48 tests (`pytest`, corre en unos 6 segundos) que
 funciona como red de seguridad: si alguien rompe un índice, un signo, o un eje de un
 `einsum`, algún test tiene que fallar. Se verificó esto con un **testeo por
 mutación**: se introdujeron 10 errores deliberados en el modelo (un índice
@@ -156,7 +174,10 @@ dengue/
   scenarios.py  condiciones_iniciales por escenario
   sparse.py     ruta de acoplamiento disperso opt-in (--sparse)
 run.py          punto de entrada de línea de comandos
+scripts/
+  reproducir_reservorio.py   regenera la tabla del efecto de reservorio (escenarios 4 vs 5)
 tests/          suite de verificación (ver tests/README.md)
+docs/           Estudio.tex (documento LaTeX), demo.gif, reservorio.gif
 ```
 
 ## 10. Licencia

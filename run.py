@@ -16,7 +16,7 @@ from matplotlib.animation import FuncAnimation
 from dengue.model import Dimensiones, Mapeo, Modelo, MU_DEFAULT, GAMMA_DEFAULT, NU_DEFAULT
 from dengue.network import (
     build_network, geometria_grilla, sigma_default,
-    BETA_H_DEFAULT, BETA_V_DEFAULT, COUPLING_DEFAULT,
+    BETA_H_DEFAULT, BETA_V_DEFAULT, COUPLING_DEFAULT, SIGMA_DEFAULT,
 )
 from dengue.scenarios import condiciones_iniciales
 from dengue.sparse import ModeloDisperso, build_network_disperso
@@ -27,9 +27,14 @@ EPILOGO_ESCENARIOS = """\
 Escenarios (--escenario):
   0: Estado limpio, sin siembra. Útil como punto de partida para sembrar a mano.
   1: Choque de Ondas. Dos infecciones en esquinas opuestas: simetría y competencia espacial.
-  2: Cortafuegos. Pared de inmunidad en el centro (ver limitaciones en el README: con
-     sigma > 1 la pared no aísla, es un resultado del modelo, no un bug).
+  2: Cortafuegos. Pared central de recuperados del serotipo 1, solo ese serotipo
+     sembrado. La pared retrasa unos días pero no aísla: el frente cruza por los
+     mosquitos de la pared (resultado del modelo, no un bug; ver README).
   3: Ruido Estocástico (default). Focos aleatorios; usa una semilla fija internamente.
+  4: Reservorio. Misma pared que el 2, pero con AMBOS serotipos sembrados a la
+     izquierda: la pared amplifica al serotipo 2 (sección 1.3 del TEX). Requiere
+     --cepas >= 2. Reproducir la tabla del TEX: scripts/reproducir_reservorio.py
+  5: Control del reservorio. Idéntico al 4 sin la pared. Requiere --cepas >= 2.
 """
 
 
@@ -54,8 +59,11 @@ def construir_parser() -> argparse.ArgumentParser:
                         help="número de nodos de la grilla (default: 100)")
     parser.add_argument("--cepas", type=entero_positivo, default=2,
                         help="número de serotipos (default: 2)")
-    parser.add_argument("--escenario", type=int, choices=[0, 1, 2, 3], default=3,
+    parser.add_argument("--escenario", type=int, choices=[0, 1, 2, 3, 4, 5], default=3,
                         help="condición inicial a usar (default: 3; ver detalle abajo)")
+    parser.add_argument("--sigma", type=float, default=SIGMA_DEFAULT,
+                        help="efecto cruzado entre serotipos distintos (default: 1.5, "
+                             "régimen ADE; < 1 protección cruzada, > 1 enhancement)")
     parser.add_argument("--t-final", type=float, default=200.0, dest="t_final",
                         help="tiempo final de la integración, en días (default: 200)")
     parser.add_argument("--semilla", type=int, default=SEMILLA_ESCENARIO_3,
@@ -97,9 +105,13 @@ def main() -> None:
     else:
         lam, delta = build_network(grid_rows, grid_cols, c, beta_h, beta_v, coupling)
         rhs = Modelo
-    sigma = sigma_default(c)
+    sigma = sigma_default(c, args.sigma)
 
-    S0, I0, Z0, Y0, V0 = condiciones_iniciales(args.escenario, grid_rows, grid_cols, c, N_pop)
+    try:
+        S0, I0, Z0, Y0, V0 = condiciones_iniciales(args.escenario, grid_rows, grid_cols, c,
+                                                   N_pop)
+    except ValueError as e:  # p. ej. escenarios 4/5 con --cepas 1
+        sys.exit(f"run.py: error: {e}")
     x0 = Mapeo(S0, I0, Z0, Y0, V0)
 
     print("Integrando (esto puede demorar)...")
